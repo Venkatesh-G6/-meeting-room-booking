@@ -91,6 +91,72 @@ All API responses follow the `ApiResponse` wrapper:
 - **Response Message:** `Room disabled successfully`
 - **Error:** `404 NOT FOUND` if room does not exist
 
+## Booking Management
+
+### Create Booking
+
+- **Method:** `POST`
+- **URL:** `/api/bookings`
+- **Description:** Books a room for a specific time slot.
+- **Request Body:**
+
+```json
+{
+  "roomId": 1,
+  "bookedBy": "user@example.com",
+  "title": "Project Meeting",
+  "attendeeCount": 5,
+  "startTime": "2026-06-22T10:00:00",
+  "endTime": "2026-06-22T11:00:00"
+}
+```
+
+- **Response:** `201 CREATED`
+- **Response Message:** `Room booked successfully`
+- **Validation Rules:**
+  - `roomId` is required
+  - `bookedBy` is required
+  - `attendeeCount` is required and must be at least 1
+  - `startTime` and `endTime` are required
+  - `startTime` must be before `endTime`
+  - `startTime` cannot be in the past
+  - `attendeeCount` cannot exceed room capacity
+  - Room must not be double booked for overlapping time slots
+
+### Get All Bookings
+
+- **Method:** `GET`
+- **URL:** `/api/bookings`
+- **Description:** Returns a list of all bookings.
+- **Response:** `200 OK`
+- **Response Message:** `Bookings fetched successfully`
+
+### Get Booking by ID
+
+- **Method:** `GET`
+- **URL:** `/api/bookings/{id}`
+- **Description:** Returns a single booking by its ID.
+- **Response:** `200 OK`
+- **Response Message:** `Booking fetched successfully`
+- **Error:** `404 NOT FOUND` if booking does not exist
+
+### Get My Bookings
+
+- **Method:** `GET`
+- **URL:** `/api/bookings/my?bookedBy={email}`
+- **Description:** Returns all bookings for a specific user, ordered by start time descending.
+- **Response:** `200 OK`
+- **Response Message:** `My bookings fetched successfully`
+
+### Cancel Booking
+
+- **Method:** `DELETE`
+- **URL:** `/api/bookings/{id}?requestedBy={email}`
+- **Description:** Cancels a booking. Only the user who booked it can cancel.
+- **Response:** `200 OK`
+- **Response Message:** `Booking cancelled successfully`
+- **Error:** `400 BAD REQUEST` if already cancelled or if `requestedBy` does not match `bookedBy`
+
 ## Utility & Monitoring
 
 ### Swagger UI
@@ -116,3 +182,4 @@ All API responses follow the `ApiResponse` wrapper:
 | Date | Changes |
 |---|---|
 | 2026-06-22 | Added Room Management endpoints (POST, GET, GET by ID, PUT, PATCH disable) |
+| 2026-06-22 | Added Booking Management endpoints (POST, GET, GET by ID, GET my bookings, DELETE cancel) with conflict detection |
