@@ -30,6 +30,7 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional
+    // Pessimistic lock ensures no two transactions can book the same room at the same time
     public BookingResponse createBooking(CreateBookingRequest request) {
         Room room = roomRepository.findById(request.getRoomId())
                 .orElseThrow(() -> new ResourceNotFoundException("Room not found"));
@@ -38,24 +39,19 @@ public class BookingServiceImpl implements BookingService {
             throw new BookingException("Room is not available for booking");
         }
 
-        if (!request.getStartTime().isBefore(request.getEndTime())) {
-            throw new BookingException("Start time must be before end time");
+        if (request.getAttendeeCount() == null) {
+            request.setAttendeeCount(1);
         }
 
-        if (request.getStartTime().isBefore(LocalDateTime.now())) {
-            throw new BookingException("Booking cannot be made in the past");
+        if (request.getTitle() == null || request.getTitle().isBlank()) {
+            request.setTitle("Meeting - " + room.getRoomName());
         }
 
-        if (request.getAttendeeCount() > room.getCapacity()) {
-            throw new BookingException("Attendee count exceeds room capacity");
-        }
-
-        List<Booking> overlappingBookings = bookingRepository.findOverlappingBookings(
-                room.getId(), request.getStartTime(), request.getEndTime()
-        );
-        if (!overlappingBookings.isEmpty()) {
-            throw new BookingException("Room is already booked for the selected time slot");
-        }
+        validateTimeRange(request.getStartTime(), request.getEndTime());
+        validateFutureBooking(request.getStartTime());
+        validateRoomCapacity(room, request.getAttendeeCount());
+        validateDuplicateBooking(room.getId(), request.getBookedBy(), request.getStartTime(), request.getEndTime());
+        validateRoomAvailability(room.getId(), request.getStartTime(), request.getEndTime());
 
         Booking booking = Booking.builder()
                 .room(room)
@@ -101,12 +97,50 @@ public class BookingServiceImpl implements BookingService {
             throw new BookingException("Booking is already cancelled");
         }
 
+        if (booking.getStartTime().isBefore(LocalDateTime.now()) && booking.getStatus() == BookingStatus.CONFIRMED) {
+            throw new BookingException("Cannot cancel a booking that has already started");
+        }
+
         if (!booking.getBookedBy().equals(requestedBy)) {
             throw new BookingException("You are not authorized to cancel this booking");
         }
 
         booking.setStatus(BookingStatus.CANCELLED);
         bookingRepository.save(booking);
+    }
+
+    private void validateTimeRange(LocalDateTime startTime, LocalDateTime endTime) {
+        if (!startTime.isBefore(endTime)) {
+            throw new BookingException("Start time must be before end time");
+        }
+    }
+
+    private void validateFutureBooking(LocalDateTime startTime) {
+        if (startTime.isBefore(LocalDateTime.now().minusMinutes(5))) {
+            throw new BookingException("Booking cannot be made in the past");
+        }
+    }
+
+    private void validateRoomCapacity(Room room, Integer attendeeCount) {
+        if (attendeeCount > room.getCapacity()) {
+            throw new BookingException("Attendee count exceeds room capacity");
+        }
+    }
+
+    private void validateRoomAvailability(Long roomId, LocalDateTime startTime, LocalDateTime endTime) {
+        List<Booking> overlappingBookings = bookingRepository.findOverlappingBookings(
+                roomId, startTime, endTime
+        );
+        if (!overlappingBookings.isEmpty()) {
+            throw new BookingException("Room is already booked for the selected time slot");
+        }
+    }
+
+    private void validateDuplicateBooking(Long roomId, String bookedBy, LocalDateTime startTime, LocalDateTime endTime) {
+        bookingRepository.findDuplicateBooking(roomId, bookedBy, startTime, endTime)
+                .ifPresent(booking -> {
+                    throw new BookingException("You already have a booking for this room at the selected time");
+                });
     }
 
     private BookingResponse mapToResponse(Booking booking) {
