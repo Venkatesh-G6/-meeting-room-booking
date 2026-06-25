@@ -4,16 +4,21 @@
 *.iml
 
 # Local environment files
-.env
+server/.env
 *.env
-application-local.yml
-application-secrets.yml
+server/src/main/resources/application-local.yml
+server/src/main/resources/application-secrets.yml
 
 # Build output
-target/
+server/target/
 
 # Log files
 *.log
 
 # Workspace files
 *.code-workspace
+
+# Client (frontend)
+client/node_modules/
+client/dist/
+client/.env
