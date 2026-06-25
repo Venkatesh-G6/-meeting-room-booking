@@ -31,7 +31,7 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional
     // Pessimistic lock ensures no two transactions can book the same room at the same time
-    public BookingResponse createBooking(CreateBookingRequest request) {
+    public BookingResponse createBooking(CreateBookingRequest request, String bookedBy) {
         Room room = roomRepository.findById(request.getRoomId())
                 .orElseThrow(() -> new ResourceNotFoundException("Room not found"));
 
@@ -50,12 +50,12 @@ public class BookingServiceImpl implements BookingService {
         validateTimeRange(request.getStartTime(), request.getEndTime());
         validateFutureBooking(request.getStartTime());
         validateRoomCapacity(room, request.getAttendeeCount());
-        validateDuplicateBooking(room.getId(), request.getBookedBy(), request.getStartTime(), request.getEndTime());
+        validateDuplicateBooking(room.getId(), bookedBy, request.getStartTime(), request.getEndTime());
         validateRoomAvailability(room.getId(), request.getStartTime(), request.getEndTime());
 
         Booking booking = Booking.builder()
                 .room(room)
-                .bookedBy(request.getBookedBy())
+                .bookedBy(bookedBy)
                 .title(request.getTitle())
                 .attendeeCount(request.getAttendeeCount())
                 .startTime(request.getStartTime())

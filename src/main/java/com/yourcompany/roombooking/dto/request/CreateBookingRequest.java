@@ -1,7 +1,6 @@
 package com.yourcompany.roombooking.dto.request;
 
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -19,8 +18,7 @@ public class CreateBookingRequest {
     @NotNull
     private Long roomId;
 
-    @NotBlank
-    private String bookedBy;
+    // bookedBy is extracted from JWT, not accepted from request body
 
     private String title;
 

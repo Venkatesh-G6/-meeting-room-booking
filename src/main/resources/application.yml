@@ -13,8 +13,39 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    deserialization:
+      accept-single-value-as-array: true
+    date-format: yyyy-MM-dd'T'HH:mm:ss
+  # Modern Spring Cloud Azure 5.x — compatible with Spring Boot 3.x
+  # Never hardcode secrets here.
+  # All sensitive values must come from
+  # environment variables or a secrets manager.
+  cloud:
+    azure:
+      active-directory:
+        enabled: true
+        profile:
+          tenant-id: ${AZURE_TENANT_ID:dummy-tenant-id}
+        credential:
+          client-id: ${AZURE_CLIENT_ID:dummy-client-id}
+          client-secret: ${AZURE_CLIENT_SECRET:dummy-client-secret}
+        app-id-uri: ${AZURE_APP_ID_URI:api://dummy}
+        user-group:
+          allowed-group-names:
+            - RoomBooking-Employees
+            - RoomBooking-Admins
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://login.microsoftonline.com/${AZURE_TENANT_ID:dummy-tenant-id}/v2.0
 
 springdoc:
+  api-docs:
+    path: /api-docs
   swagger-ui:
     path: /swagger-ui.html
 

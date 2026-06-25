@@ -37,4 +37,10 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("startTime") LocalDateTime startTime,
             @Param("endTime") LocalDateTime endTime
     );
+
+    @Query("SELECT DISTINCT b.room.id FROM Booking b WHERE b.status = 'CONFIRMED' AND b.startTime < :endTime AND b.endTime > :startTime")
+    List<Long> findBookedRoomIds(
+            @Param("startTime") LocalDateTime startTime,
+            @Param("endTime") LocalDateTime endTime
+    );
 }

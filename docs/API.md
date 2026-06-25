@@ -31,6 +31,36 @@ All API responses follow the `ApiResponse` wrapper:
 
 ## Room Management
 
+### Check Room Availability
+
+- **Method:** `GET`
+- **URL:** `/api/rooms/available?date={date}&startTime={time}&endTime={time}&minCapacity={n}`
+- **Description:** Returns all active rooms available for the given date and time slot, filtered by minimum capacity.
+- **Query Parameters:**
+  - `date` (required) — ISO date, e.g. `2026-06-27`
+  - `startTime` (required) — ISO time, e.g. `10:00:00`
+  - `endTime` (required) — ISO time, e.g. `11:00:00`
+  - `minCapacity` (optional, default `1`) — minimum room capacity
+- **Response:** `200 OK`
+- **Response Message:** `Available rooms fetched successfully`
+- **Response Data:**
+
+```json
+{
+  "date": "2026-06-27",
+  "startTime": "10:00:00",
+  "endTime": "11:00:00",
+  "availableRooms": [ { "id": 1, "roomName": "Conference Room A", "capacity": 10, "...": "..." } ],
+  "totalAvailable": 1
+}
+```
+
+- **Validation Rules:**
+  - `startTime` must be before `endTime`
+  - `date` cannot be in the past
+  - `minCapacity` must be at least 1
+- **Note:** Rooms with a confirmed booking overlapping the requested slot are excluded. Adjacent (back-to-back) slots are not considered conflicts.
+
 ### Create Room
 
 - **Method:** `POST`
@@ -183,3 +213,4 @@ All API responses follow the `ApiResponse` wrapper:
 |---|---|
 | 2026-06-22 | Added Room Management endpoints (POST, GET, GET by ID, PUT, PATCH disable) |
 | 2026-06-22 | Added Booking Management endpoints (POST, GET, GET by ID, GET my bookings, DELETE cancel) with conflict detection |
+| 2026-06-22 | Added Check Room Availability endpoint (GET /api/rooms/available) with capacity filter and overlap exclusion |

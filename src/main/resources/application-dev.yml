@@ -1,0 +1,17 @@
+# Use this profile only for local dev without
+# Entra ID. Never use in staging or production.
+spring:
+  cloud:
+    azure:
+      active-directory:
+        enabled: false
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ""
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.security.oauth2.resource.servlet.OAuth2ResourceServerAutoConfiguration
+      - com.azure.spring.cloud.autoconfigure.implementation.activedirectory.AzureActiveDirectoryAutoConfiguration
+      - com.azure.spring.cloud.autoconfigure.implementation.aad.security.AzureActiveDirectorySecurityAutoConfiguration

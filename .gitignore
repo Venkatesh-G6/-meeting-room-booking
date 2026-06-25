@@ -1,0 +1,19 @@
+# IDE and local config
+.vscode/
+.idea/
+*.iml
+
+# Local environment files
+.env
+*.env
+application-local.yml
+application-secrets.yml
+
+# Build output
+target/
+
+# Log files
+*.log
+
+# Workspace files
+*.code-workspace
