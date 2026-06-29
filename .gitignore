@@ -22,3 +22,11 @@ server/target/
 client/node_modules/
 client/dist/
 client/.env
+client/room-booking-ui/node_modules/
+client/room-booking-ui/dist/
+client/room-booking-ui/.env
+
+# Misc
+server/__MACOSX/
+server/server/
+target/

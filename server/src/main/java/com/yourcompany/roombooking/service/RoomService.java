@@ -7,18 +7,19 @@ import com.yourcompany.roombooking.dto.response.AvailabilityResponse;
 import com.yourcompany.roombooking.dto.response.RoomResponse;
 
 import java.util.List;
+import java.util.UUID;
 
 public interface RoomService {
 
     RoomResponse createRoom(CreateRoomRequest request);
 
-    RoomResponse getRoomById(Long id);
+    RoomResponse getRoomById(UUID id);
 
     List<RoomResponse> getAllRooms();
 
-    RoomResponse updateRoom(Long id, UpdateRoomRequest request);
+    RoomResponse updateRoom(UUID id, UpdateRoomRequest request);
 
-    void disableRoom(Long id);
+    void disableRoom(UUID id);
 
     AvailabilityResponse checkAvailability(AvailabilityRequest request);
 }

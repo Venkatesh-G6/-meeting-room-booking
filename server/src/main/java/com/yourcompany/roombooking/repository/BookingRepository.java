@@ -13,33 +13,34 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface BookingRepository extends JpaRepository<Booking, Long> {
+public interface BookingRepository extends JpaRepository<Booking, UUID> {
 
     List<Booking> findAllByBookedByOrderByStartTimeDesc(String bookedBy);
 
-    List<Booking> findAllByRoomIdAndStatus(Long roomId, BookingStatus status);
+    List<Booking> findAllByRoomIdAndStatus(UUID roomId, BookingStatus status);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @QueryHints({@QueryHint(name = "javax.persistence.lock.timeout", value = "3000")})
     @Query("SELECT b FROM Booking b WHERE b.room.id = :roomId AND b.status = 'CONFIRMED' AND b.startTime < :endTime AND b.endTime > :startTime")
     List<Booking> findOverlappingBookings(
-            @Param("roomId") Long roomId,
+            @Param("roomId") UUID roomId,
             @Param("startTime") LocalDateTime startTime,
             @Param("endTime") LocalDateTime endTime
     );
 
     @Query("SELECT b FROM Booking b WHERE b.room.id = :roomId AND b.bookedBy = :bookedBy AND b.status = 'CONFIRMED' AND b.startTime = :startTime AND b.endTime = :endTime")
     Optional<Booking> findDuplicateBooking(
-            @Param("roomId") Long roomId,
+            @Param("roomId") UUID roomId,
             @Param("bookedBy") String bookedBy,
             @Param("startTime") LocalDateTime startTime,
             @Param("endTime") LocalDateTime endTime
     );
 
     @Query("SELECT DISTINCT b.room.id FROM Booking b WHERE b.status = 'CONFIRMED' AND b.startTime < :endTime AND b.endTime > :startTime")
-    List<Long> findBookedRoomIds(
+    List<UUID> findBookedRoomIds(
             @Param("startTime") LocalDateTime startTime,
             @Param("endTime") LocalDateTime endTime
     );

@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Data
 @NoArgsConstructor
@@ -14,8 +15,8 @@ import java.time.LocalDateTime;
 @Builder
 public class BookingResponse {
 
-    private Long id;
-    private Long roomId;
+    private UUID id;
+    private UUID roomId;
     private String roomName;
     private String bookedBy;
     private String title;

@@ -15,6 +15,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/bookings")
@@ -47,7 +48,7 @@ public class BookingController {
 
     @PreAuthorize("hasAnyRole('EMPLOYEE','ADMIN')")
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<BookingResponse>> getBookingById(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<BookingResponse>> getBookingById(@PathVariable UUID id) {
         BookingResponse booking = bookingService.getBookingById(id);
         return ResponseEntity.ok(ApiResponse.success("Booking fetched successfully", booking));
     }
@@ -62,7 +63,7 @@ public class BookingController {
     @PreAuthorize("hasAnyRole('EMPLOYEE','ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> cancelBooking(
-            @PathVariable Long id,
+            @PathVariable UUID id,
             @AuthenticationPrincipal Jwt jwt) {
         String requestedBy = JwtTokenValidator.extractEmail(jwt);
         bookingService.cancelBooking(id, requestedBy);

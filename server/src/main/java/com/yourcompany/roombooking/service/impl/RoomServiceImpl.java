@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -48,7 +49,7 @@ public class RoomServiceImpl implements RoomService {
     }
 
     @Override
-    public RoomResponse getRoomById(Long id) {
+    public RoomResponse getRoomById(UUID id) {
         Room room = roomRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Room not found"));
         return mapToResponse(room);
@@ -62,7 +63,7 @@ public class RoomServiceImpl implements RoomService {
     }
 
     @Override
-    public RoomResponse updateRoom(Long id, UpdateRoomRequest request) {
+    public RoomResponse updateRoom(UUID id, UpdateRoomRequest request) {
         Room room = roomRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Room not found"));
 
@@ -76,7 +77,7 @@ public class RoomServiceImpl implements RoomService {
     }
 
     @Override
-    public void disableRoom(Long id) {
+    public void disableRoom(UUID id) {
         Room room = roomRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Room not found"));
 
@@ -91,7 +92,7 @@ public class RoomServiceImpl implements RoomService {
         LocalDateTime startDateTime = request.toStartDateTime();
         LocalDateTime endDateTime = request.toEndDateTime();
 
-        List<Long> bookedRoomIds = bookingRepository.findBookedRoomIds(startDateTime, endDateTime);
+        List<UUID> bookedRoomIds = bookingRepository.findBookedRoomIds(startDateTime, endDateTime);
         if (bookedRoomIds.isEmpty()) {
             bookedRoomIds = null;
         }

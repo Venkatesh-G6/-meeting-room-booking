@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -68,7 +69,7 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    public BookingResponse getBookingById(Long id) {
+    public BookingResponse getBookingById(UUID id) {
         Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
         return mapToResponse(booking);
@@ -89,7 +90,7 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    public void cancelBooking(Long id, String requestedBy) {
+    public void cancelBooking(UUID id, String requestedBy) {
         Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
 
@@ -127,7 +128,7 @@ public class BookingServiceImpl implements BookingService {
         }
     }
 
-    private void validateRoomAvailability(Long roomId, LocalDateTime startTime, LocalDateTime endTime) {
+    private void validateRoomAvailability(UUID roomId, LocalDateTime startTime, LocalDateTime endTime) {
         List<Booking> overlappingBookings = bookingRepository.findOverlappingBookings(
                 roomId, startTime, endTime
         );
@@ -136,7 +137,7 @@ public class BookingServiceImpl implements BookingService {
         }
     }
 
-    private void validateDuplicateBooking(Long roomId, String bookedBy, LocalDateTime startTime, LocalDateTime endTime) {
+    private void validateDuplicateBooking(UUID roomId, String bookedBy, LocalDateTime startTime, LocalDateTime endTime) {
         bookingRepository.findDuplicateBooking(roomId, bookedBy, startTime, endTime)
                 .ifPresent(booking -> {
                     throw new BookingException("You already have a booking for this room at the selected time");

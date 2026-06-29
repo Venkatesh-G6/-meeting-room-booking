@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Data
 @NoArgsConstructor
@@ -16,7 +17,7 @@ import java.time.LocalDateTime;
 public class CreateBookingRequest {
 
     @NotNull
-    private Long roomId;
+    private UUID roomId;
 
     // bookedBy is extracted from JWT, not accepted from request body
 

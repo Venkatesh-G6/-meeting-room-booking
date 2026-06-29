@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/rooms")
@@ -71,7 +72,7 @@ public class RoomController {
 
     @PreAuthorize("hasAnyRole('EMPLOYEE','ADMIN')")
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<RoomResponse>> getRoomById(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<RoomResponse>> getRoomById(@PathVariable UUID id) {
         RoomResponse room = roomService.getRoomById(id);
         return ResponseEntity.ok(ApiResponse.success("Room fetched successfully", room));
     }
@@ -79,7 +80,7 @@ public class RoomController {
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<RoomResponse>> updateRoom(
-            @PathVariable Long id,
+            @PathVariable UUID id,
             @Valid @RequestBody UpdateRoomRequest request) {
         RoomResponse response = roomService.updateRoom(id, request);
         return ResponseEntity.ok(ApiResponse.success("Room updated successfully", response));
@@ -87,7 +88,7 @@ public class RoomController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/{id}/disable")
-    public ResponseEntity<ApiResponse<Void>> disableRoom(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<Void>> disableRoom(@PathVariable UUID id) {
         roomService.disableRoom(id);
         return ResponseEntity.ok(ApiResponse.success("Room disabled successfully", null));
     }
