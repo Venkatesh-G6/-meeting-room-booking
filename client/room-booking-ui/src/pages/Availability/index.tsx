@@ -13,6 +13,12 @@ import { Layout } from "../../components/layout";
 import { Badge, PageHeader } from "../../components/common";
 import { checkAvailability, createBooking } from "../../api";
 import type { Room, CreateBookingRequest } from "../../types";
+import {
+  formatDateForApi,
+  formatTimeForApi,
+  formatTime,
+  isPast,
+} from "../../utils/dateUtils";
 
 export default function Availability() {
   const [date, setDate] = useState("");
@@ -25,7 +31,7 @@ export default function Availability() {
   const [availableRooms, setAvailableRooms] = useState<Room[]>([]);
   const [bookingRoom, setBookingRoom] = useState<Room | null>(null);
   const [bookingForm, setBookingForm] = useState<CreateBookingRequest>({
-    roomId: 0,
+    roomId: "",
     title: "",
     attendeeCount: 1,
     startTime: "",
@@ -38,7 +44,7 @@ export default function Availability() {
 
     if (!date) {
       newErrors.date = "Date is required";
-    } else if (dayjs(date).isBefore(dayjs().format("YYYY-MM-DD"))) {
+    } else if (isPast(date)) {
       newErrors.date = "Date cannot be in the past";
     }
 
@@ -58,9 +64,9 @@ export default function Availability() {
     setLoading(true);
     try {
       const res = await checkAvailability({
-        date,
-        startTime,
-        endTime,
+        date: formatDateForApi(new Date(date)),
+        startTime: formatTimeForApi(startTime),
+        endTime: formatTimeForApi(endTime),
         minCapacity,
       });
       setAvailableRooms(res.data.availableRooms);
@@ -86,7 +92,7 @@ export default function Availability() {
   function closeBookingModal() {
     setBookingRoom(null);
     setBookingForm({
-      roomId: 0,
+      roomId: "",
       title: "",
       attendeeCount: 1,
       startTime: "",
@@ -327,7 +333,7 @@ export default function Availability() {
                   </label>
                   <input
                     type="text"
-                    value={`${date} ${startTime}`}
+                    value={formatTime(bookingForm.startTime)}
                     disabled
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-500"
                   />
@@ -338,7 +344,7 @@ export default function Availability() {
                   </label>
                   <input
                     type="text"
-                    value={`${date} ${endTime}`}
+                    value={formatTime(bookingForm.endTime)}
                     disabled
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-500"
                   />

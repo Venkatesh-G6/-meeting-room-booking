@@ -3,10 +3,14 @@ import type {
   ApiResponse,
   Booking,
   CreateBookingRequest,
+  PagedResponse,
 } from "../types";
 
-export function getAllBookings(): Promise<ApiResponse<Booking[]>> {
-  return apiClient.get("/bookings");
+export function getAllBookings(
+  page: number,
+  size: number
+): Promise<ApiResponse<PagedResponse<Booking>>> {
+  return apiClient.get("/bookings", { params: { page, size } });
 }
 
 export function getBookingById(id: string): Promise<ApiResponse<Booking>> {

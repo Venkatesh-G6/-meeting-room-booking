@@ -37,6 +37,15 @@ export interface ApiResponse<T> {
   timestamp: string
 }
 
+export interface PagedResponse<T> {
+  content: T[]
+  pageNumber: number
+  pageSize: number
+  totalElements: number
+  totalPages: number
+  last: boolean
+}
+
 export interface CreateRoomRequest {
   roomName: string
   roomType: 'MEETING' | 'TRAINING' | 'POD'
@@ -50,4 +59,14 @@ export interface CreateBookingRequest {
   attendeeCount: number
   startTime: string
   endTime: string
+}
+
+export interface AuditLog {
+  id: number
+  actorEmail: string
+  action: string
+  entityType: string
+  entityId: string
+  metaJson: string
+  createdAt: string
 }

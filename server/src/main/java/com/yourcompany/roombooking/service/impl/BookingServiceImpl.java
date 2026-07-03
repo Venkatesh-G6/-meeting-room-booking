@@ -1,15 +1,23 @@
 package com.yourcompany.roombooking.service.impl;
 
+import com.yourcompany.roombooking.audit.AuditMeta;
+import com.yourcompany.roombooking.audit.AuditService;
 import com.yourcompany.roombooking.dto.request.CreateBookingRequest;
 import com.yourcompany.roombooking.dto.response.BookingResponse;
+import com.yourcompany.roombooking.dto.response.PagedResponse;
 import com.yourcompany.roombooking.entity.Booking;
 import com.yourcompany.roombooking.entity.Room;
+import com.yourcompany.roombooking.enums.AuditAction;
 import com.yourcompany.roombooking.enums.BookingStatus;
 import com.yourcompany.roombooking.exception.BookingException;
 import com.yourcompany.roombooking.exception.ResourceNotFoundException;
 import com.yourcompany.roombooking.repository.BookingRepository;
 import com.yourcompany.roombooking.repository.RoomRepository;
 import com.yourcompany.roombooking.service.BookingService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,10 +31,12 @@ public class BookingServiceImpl implements BookingService {
 
     private final BookingRepository bookingRepository;
     private final RoomRepository roomRepository;
+    private final AuditService auditService;
 
-    public BookingServiceImpl(BookingRepository bookingRepository, RoomRepository roomRepository) {
+    public BookingServiceImpl(BookingRepository bookingRepository, RoomRepository roomRepository, AuditService auditService) {
         this.bookingRepository = bookingRepository;
         this.roomRepository = roomRepository;
+        this.auditService = auditService;
     }
 
     @Override
@@ -65,6 +75,22 @@ public class BookingServiceImpl implements BookingService {
                 .build();
 
         Booking savedBooking = bookingRepository.save(booking);
+
+        auditService.log(
+                bookedBy,
+                AuditAction.BOOKING_CREATED,
+                "BOOKING",
+                savedBooking.getId().toString(),
+                new AuditMeta.BookingMeta(
+                        savedBooking.getId(),
+                        savedBooking.getRoom().getId(),
+                        savedBooking.getRoom().getRoomName(),
+                        savedBooking.getBookedBy(),
+                        savedBooking.getStartTime().toString(),
+                        savedBooking.getEndTime().toString()
+                )
+        );
+
         return mapToResponse(savedBooking);
     }
 
@@ -76,17 +102,23 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    public List<BookingResponse> getMyBookings(String bookedBy) {
-        return bookingRepository.findAllByBookedByOrderByStartTimeDesc(bookedBy).stream()
+    public PagedResponse<BookingResponse> getMyBookings(String bookedBy, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Booking> bookingPage = bookingRepository.findAllByBookedByOrderByStartTimeDesc(bookedBy, pageable);
+        List<BookingResponse> bookingResponses = bookingPage.getContent().stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
+        return PagedResponse.of(bookingPage, bookingResponses);
     }
 
     @Override
-    public List<BookingResponse> getAllBookings() {
-        return bookingRepository.findAll().stream()
+    public PagedResponse<BookingResponse> getAllBookings(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<Booking> bookingPage = bookingRepository.findAll(pageable);
+        List<BookingResponse> bookingResponses = bookingPage.getContent().stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
+        return PagedResponse.of(bookingPage, bookingResponses);
     }
 
     @Override
@@ -102,12 +134,30 @@ public class BookingServiceImpl implements BookingService {
             throw new BookingException("Cannot cancel a booking that has already started");
         }
 
-        if (!booking.getBookedBy().equals(requestedBy)) {
+        // TODO Phase 9: Replace hardcoded admin
+        // check with hasRole('ADMIN') from JWT
+        if (!booking.getBookedBy().equals(requestedBy)
+                && !requestedBy.equals("admin@company.com")) {
             throw new BookingException("You are not authorized to cancel this booking");
         }
 
         booking.setStatus(BookingStatus.CANCELLED);
         bookingRepository.save(booking);
+
+        auditService.log(
+                requestedBy,
+                AuditAction.BOOKING_CANCELLED,
+                "BOOKING",
+                booking.getId().toString(),
+                new AuditMeta.BookingMeta(
+                        booking.getId(),
+                        booking.getRoom().getId(),
+                        booking.getRoom().getRoomName(),
+                        booking.getBookedBy(),
+                        booking.getStartTime().toString(),
+                        booking.getEndTime().toString()
+                )
+        );
     }
 
     private void validateTimeRange(LocalDateTime startTime, LocalDateTime endTime) {

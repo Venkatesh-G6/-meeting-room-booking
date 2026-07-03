@@ -4,6 +4,8 @@ import com.yourcompany.roombooking.entity.Booking;
 import com.yourcompany.roombooking.enums.BookingStatus;
 import jakarta.persistence.LockModeType;
 import jakarta.persistence.QueryHint;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -18,7 +20,9 @@ import java.util.UUID;
 @Repository
 public interface BookingRepository extends JpaRepository<Booking, UUID> {
 
-    List<Booking> findAllByBookedByOrderByStartTimeDesc(String bookedBy);
+    Page<Booking> findAllByBookedByOrderByStartTimeDesc(String bookedBy, Pageable pageable);
+
+    Page<Booking> findAll(Pageable pageable);
 
     List<Booking> findAllByRoomIdAndStatus(UUID roomId, BookingStatus status);
 

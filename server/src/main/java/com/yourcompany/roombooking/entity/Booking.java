@@ -2,6 +2,8 @@ package com.yourcompany.roombooking.entity;
 
 import com.yourcompany.roombooking.enums.BookingStatus;
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -24,10 +26,11 @@ public class Booking {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @JdbcTypeCode(SqlTypes.CHAR)
     private UUID id;
 
     @ManyToOne
-    @JoinColumn(name = "room_id", nullable = false)
+    @JoinColumn(name = "room_id", nullable = false, columnDefinition = "CHAR(36)")
     private Room room;
 
     @Column(name = "booked_by", nullable = false)

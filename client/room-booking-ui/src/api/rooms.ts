@@ -1,13 +1,17 @@
 import apiClient from "./client";
 import type {
   ApiResponse,
+  PagedResponse,
   Room,
   AvailabilityResponse,
   CreateRoomRequest,
 } from "../types";
 
-export function getAllRooms(): Promise<ApiResponse<Room[]>> {
-  return apiClient.get("/rooms");
+export function getAllRooms(
+  page: number,
+  size: number
+): Promise<ApiResponse<PagedResponse<Room>>> {
+  return apiClient.get("/rooms", { params: { page, size } });
 }
 
 export function getRoomById(id: string): Promise<ApiResponse<Room>> {

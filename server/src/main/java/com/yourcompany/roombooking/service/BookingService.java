@@ -2,8 +2,8 @@ package com.yourcompany.roombooking.service;
 
 import com.yourcompany.roombooking.dto.request.CreateBookingRequest;
 import com.yourcompany.roombooking.dto.response.BookingResponse;
+import com.yourcompany.roombooking.dto.response.PagedResponse;
 
-import java.util.List;
 import java.util.UUID;
 
 public interface BookingService {
@@ -12,9 +12,9 @@ public interface BookingService {
 
     BookingResponse getBookingById(UUID id);
 
-    List<BookingResponse> getMyBookings(String bookedBy);
+    PagedResponse<BookingResponse> getMyBookings(String bookedBy, int page, int size);
 
-    List<BookingResponse> getAllBookings();
+    PagedResponse<BookingResponse> getAllBookings(int page, int size);
 
     void cancelBooking(UUID id, String requestedBy);
 }

@@ -7,9 +7,10 @@ import {
 import dayjs from "dayjs";
 import { toast } from "react-hot-toast";
 import { Layout } from "../../components/layout";
-import { Badge, PageHeader } from "../../components/common";
+import { Badge, PageHeader, Pagination } from "../../components/common";
 import { getAllBookings, cancelBooking } from "../../api";
 import type { Booking } from "../../types";
+import { formatDate, formatTime } from "../../utils/dateUtils";
 
 export default function Bookings() {
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -17,11 +18,17 @@ export default function Bookings() {
   const [searchEmail, setSearchEmail] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [dateFilter, setDateFilter] = useState("");
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+  const pageSize = 10;
 
   async function fetchBookings() {
     try {
-      const res = await getAllBookings();
-      setBookings(res.data);
+      const res = await getAllBookings(currentPage, pageSize);
+      setBookings(res.data.content);
+      setTotalPages(res.data.totalPages);
+      setTotalElements(res.data.totalElements);
     } catch (err) {
       toast.error(err as string);
     } finally {
@@ -31,13 +38,14 @@ export default function Bookings() {
 
   useEffect(() => {
     fetchBookings();
-  }, []);
+  }, [currentPage]);
 
   async function handleCancel(booking: Booking) {
     if (!window.confirm(`Cancel booking for ${booking.roomName}?`)) return;
     try {
       await cancelBooking(booking.id);
       toast.success("Booking cancelled successfully");
+      setCurrentPage(0);
       await fetchBookings();
     } catch (err) {
       toast.error(err as string);
@@ -133,13 +141,13 @@ export default function Bookings() {
                   <td className="px-4 py-3 text-sm text-gray-600">{booking.bookedBy}</td>
                   <td className="px-4 py-3 text-sm text-gray-600">{booking.title}</td>
                   <td className="px-4 py-3 text-sm text-gray-600">
-                    {dayjs(booking.startTime).format("YYYY-MM-DD")}
+                    {formatDate(booking.startTime)}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-600">
-                    {dayjs(booking.startTime).format("HH:mm")}
+                    {formatTime(booking.startTime)}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-600">
-                    {dayjs(booking.endTime).format("HH:mm")}
+                    {formatTime(booking.endTime)}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-600">{booking.attendeeCount}</td>
                   <td className="px-4 py-3">
@@ -162,6 +170,16 @@ export default function Bookings() {
           </table>
         )}
       </div>
+
+      {!loading && totalPages > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalElements={totalElements}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+        />
+      )}
     </Layout>
   );
 }

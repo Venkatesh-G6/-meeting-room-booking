@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { Layout } from "../../components/layout";
-import { Badge, PageHeader } from "../../components/common";
+import { Badge, PageHeader, Pagination } from "../../components/common";
 import { getAllRooms, createRoom, updateRoom, disableRoom } from "../../api";
 import type { Room, CreateRoomRequest } from "../../types";
 
@@ -26,11 +26,17 @@ export default function Rooms() {
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
   const [form, setForm] = useState<CreateRoomRequest>(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+  const pageSize = 10;
 
   async function fetchRooms() {
     try {
-      const res = await getAllRooms();
-      setRooms(res.data);
+      const res = await getAllRooms(currentPage, pageSize);
+      setRooms(res.data.content);
+      setTotalPages(res.data.totalPages);
+      setTotalElements(res.data.totalElements);
     } catch (err) {
       toast.error(err as string);
     } finally {
@@ -40,7 +46,7 @@ export default function Rooms() {
 
   useEffect(() => {
     fetchRooms();
-  }, []);
+  }, [currentPage]);
 
   function openAddModal() {
     setEditingRoom(null);
@@ -80,6 +86,7 @@ export default function Rooms() {
         toast.success("Room created successfully");
       }
       closeModal();
+      setCurrentPage(0);
       await fetchRooms();
     } catch (err) {
       toast.error(err as string);
@@ -93,6 +100,7 @@ export default function Rooms() {
     try {
       await disableRoom(room.id);
       toast.success("Room disabled successfully");
+      setCurrentPage(0);
       await fetchRooms();
     } catch (err) {
       toast.error(err as string);
@@ -198,6 +206,16 @@ export default function Rooms() {
           </table>
         )}
       </div>
+
+      {!loading && totalPages > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalElements={totalElements}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+        />
+      )}
 
       {modalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">

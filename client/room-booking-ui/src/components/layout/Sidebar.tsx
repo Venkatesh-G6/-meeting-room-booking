@@ -5,6 +5,7 @@ import {
   DoorOpen,
   CalendarDays,
   Search,
+  ClipboardList,
 } from "lucide-react";
 
 const navItems = [
@@ -12,6 +13,7 @@ const navItems = [
   { to: "/rooms", label: "Rooms", icon: DoorOpen },
   { to: "/bookings", label: "Bookings", icon: CalendarDays },
   { to: "/availability", label: "Availability", icon: Search },
+  { to: "/audit-logs", label: "Audit Logs", icon: ClipboardList },
 ];
 
 export default function Sidebar() {
@@ -19,7 +21,7 @@ export default function Sidebar() {
     <aside className="w-64 h-screen bg-gray-900 text-white flex flex-col fixed left-0 top-0">
       <div className="flex items-center gap-2 px-6 py-5 border-b border-gray-700">
         <Building2 className="w-6 h-6 text-blue-400" />
-        <span className="text-lg font-semibold">Room Booking</span>
+        <span className="text-lg font-semibold">MeetSpace</span>
       </div>
 
       <nav className="flex-1 py-4">

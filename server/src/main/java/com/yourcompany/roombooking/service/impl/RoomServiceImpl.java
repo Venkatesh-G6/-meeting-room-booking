@@ -1,16 +1,23 @@
 package com.yourcompany.roombooking.service.impl;
 
+import com.yourcompany.roombooking.audit.AuditMeta;
+import com.yourcompany.roombooking.audit.AuditService;
 import com.yourcompany.roombooking.dto.request.AvailabilityRequest;
 import com.yourcompany.roombooking.dto.request.CreateRoomRequest;
 import com.yourcompany.roombooking.dto.request.UpdateRoomRequest;
 import com.yourcompany.roombooking.dto.response.AvailabilityResponse;
+import com.yourcompany.roombooking.dto.response.PagedResponse;
 import com.yourcompany.roombooking.dto.response.RoomResponse;
 import com.yourcompany.roombooking.entity.Room;
+import com.yourcompany.roombooking.enums.AuditAction;
 import com.yourcompany.roombooking.exception.BookingException;
 import com.yourcompany.roombooking.exception.ResourceNotFoundException;
 import com.yourcompany.roombooking.repository.BookingRepository;
 import com.yourcompany.roombooking.repository.RoomRepository;
 import com.yourcompany.roombooking.service.RoomService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -24,10 +31,12 @@ public class RoomServiceImpl implements RoomService {
 
     private final RoomRepository roomRepository;
     private final BookingRepository bookingRepository;
+    private final AuditService auditService;
 
-    public RoomServiceImpl(RoomRepository roomRepository, BookingRepository bookingRepository) {
+    public RoomServiceImpl(RoomRepository roomRepository, BookingRepository bookingRepository, AuditService auditService) {
         this.roomRepository = roomRepository;
         this.bookingRepository = bookingRepository;
+        this.auditService = auditService;
     }
 
     @Override
@@ -45,6 +54,22 @@ public class RoomServiceImpl implements RoomService {
                 .build();
 
         Room savedRoom = roomRepository.save(room);
+
+        // TODO Phase 9: Replace "system" with
+        // JWT extracted email from SecurityContext
+        auditService.log(
+                "system",
+                AuditAction.ROOM_CREATED,
+                "ROOM",
+                savedRoom.getId().toString(),
+                new AuditMeta.RoomMeta(
+                        savedRoom.getId(),
+                        savedRoom.getRoomName(),
+                        savedRoom.getRoomType().name(),
+                        savedRoom.getCapacity()
+                )
+        );
+
         return mapToResponse(savedRoom);
     }
 
@@ -56,10 +81,13 @@ public class RoomServiceImpl implements RoomService {
     }
 
     @Override
-    public List<RoomResponse> getAllRooms() {
-        return roomRepository.findAllByActiveTrue().stream()
+    public PagedResponse<RoomResponse> getAllRooms(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Room> roomPage = roomRepository.findAllByActiveTrue(pageable);
+        List<RoomResponse> roomResponses = roomPage.getContent().stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
+        return PagedResponse.of(roomPage, roomResponses);
     }
 
     @Override
@@ -73,6 +101,22 @@ public class RoomServiceImpl implements RoomService {
         room.setLocation(request.getLocation());
 
         Room updatedRoom = roomRepository.save(room);
+
+        // TODO Phase 9: Replace "system" with
+        // JWT extracted email from SecurityContext
+        auditService.log(
+                "system",
+                AuditAction.ROOM_UPDATED,
+                "ROOM",
+                updatedRoom.getId().toString(),
+                new AuditMeta.RoomMeta(
+                        updatedRoom.getId(),
+                        updatedRoom.getRoomName(),
+                        updatedRoom.getRoomType().name(),
+                        updatedRoom.getCapacity()
+                )
+        );
+
         return mapToResponse(updatedRoom);
     }
 
@@ -83,6 +127,21 @@ public class RoomServiceImpl implements RoomService {
 
         room.setActive(false);
         roomRepository.save(room);
+
+        // TODO Phase 9: Replace "system" with
+        // JWT extracted email from SecurityContext
+        auditService.log(
+                "system",
+                AuditAction.ROOM_DISABLED,
+                "ROOM",
+                room.getId().toString(),
+                new AuditMeta.RoomMeta(
+                        room.getId(),
+                        room.getRoomName(),
+                        room.getRoomType().name(),
+                        room.getCapacity()
+                )
+        );
     }
 
     @Override
@@ -93,11 +152,15 @@ public class RoomServiceImpl implements RoomService {
         LocalDateTime endDateTime = request.toEndDateTime();
 
         List<UUID> bookedRoomIds = bookingRepository.findBookedRoomIds(startDateTime, endDateTime);
+
+        List<Room> rooms;
         if (bookedRoomIds.isEmpty()) {
-            bookedRoomIds = null;
+            rooms = roomRepository.findAllByActiveTrueAndCapacityGreaterThanEqual(request.getMinCapacity());
+        } else {
+            rooms = roomRepository.findAvailableRooms(request.getMinCapacity(), bookedRoomIds);
         }
 
-        List<RoomResponse> availableRooms = roomRepository.findAvailableRooms(request.getMinCapacity(), bookedRoomIds).stream()
+        List<RoomResponse> availableRooms = rooms.stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
 

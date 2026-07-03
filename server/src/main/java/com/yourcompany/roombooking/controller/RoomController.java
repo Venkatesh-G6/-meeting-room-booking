@@ -4,6 +4,7 @@ import com.yourcompany.roombooking.dto.request.AvailabilityRequest;
 import com.yourcompany.roombooking.dto.request.CreateRoomRequest;
 import com.yourcompany.roombooking.dto.request.UpdateRoomRequest;
 import com.yourcompany.roombooking.dto.response.AvailabilityResponse;
+import com.yourcompany.roombooking.dto.response.PagedResponse;
 import com.yourcompany.roombooking.dto.response.RoomResponse;
 import com.yourcompany.roombooking.service.RoomService;
 import com.yourcompany.roombooking.util.ApiResponse;
@@ -39,10 +40,10 @@ public class RoomController {
     public ResponseEntity<ApiResponse<AvailabilityResponse>> getAvailableRooms(
             @Parameter(description = "Date in format yyyy-MM-dd", example = "2025-07-01")
             @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date,
-            @Parameter(description = "Start time in format HH:mm", example = "10:00")
-            @RequestParam @DateTimeFormat(pattern = "HH:mm") LocalTime startTime,
-            @Parameter(description = "End time in format HH:mm", example = "11:00")
-            @RequestParam @DateTimeFormat(pattern = "HH:mm") LocalTime endTime,
+            @Parameter(description = "Start time in format HH:mm:ss", example = "10:00:00")
+            @RequestParam @DateTimeFormat(pattern = "HH:mm:ss") LocalTime startTime,
+            @Parameter(description = "End time in format HH:mm:ss", example = "11:00:00")
+            @RequestParam @DateTimeFormat(pattern = "HH:mm:ss") LocalTime endTime,
             @Parameter(description = "Minimum room capacity required", example = "5")
             @RequestParam(defaultValue = "1") Integer minCapacity) {
         AvailabilityRequest request = AvailabilityRequest.builder()
@@ -65,8 +66,10 @@ public class RoomController {
 
     @PreAuthorize("hasAnyRole('EMPLOYEE','ADMIN')")
     @GetMapping
-    public ResponseEntity<ApiResponse<List<RoomResponse>>> getAllRooms() {
-        List<RoomResponse> rooms = roomService.getAllRooms();
+    public ResponseEntity<ApiResponse<PagedResponse<RoomResponse>>> getAllRooms(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        PagedResponse<RoomResponse> rooms = roomService.getAllRooms(page, size);
         return ResponseEntity.ok(ApiResponse.success("Rooms fetched successfully", rooms));
     }
 

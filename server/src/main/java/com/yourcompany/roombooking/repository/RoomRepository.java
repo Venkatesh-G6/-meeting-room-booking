@@ -2,6 +2,8 @@ package com.yourcompany.roombooking.repository;
 
 import com.yourcompany.roombooking.entity.Room;
 import com.yourcompany.roombooking.enums.RoomType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -13,7 +15,7 @@ import java.util.UUID;
 @Repository
 public interface RoomRepository extends JpaRepository<Room, UUID> {
 
-    List<Room> findAllByActiveTrue();
+    Page<Room> findAllByActiveTrue(Pageable pageable);
 
     List<Room> findAllByRoomTypeAndActiveTrue(RoomType roomType);
 
@@ -24,4 +26,6 @@ public interface RoomRepository extends JpaRepository<Room, UUID> {
             @Param("minCapacity") Integer minCapacity,
             @Param("bookedRoomIds") List<UUID> bookedRoomIds
     );
+
+    List<Room> findAllByActiveTrueAndCapacityGreaterThanEqual(Integer minCapacity);
 }

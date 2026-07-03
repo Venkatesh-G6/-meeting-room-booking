@@ -6,11 +6,15 @@ import {
   Clock,
   Loader2,
 } from "lucide-react";
-import dayjs from "dayjs";
 import { Layout } from "../../components/layout";
 import { Badge, StatCard } from "../../components/common";
 import { getAllRooms, getAllBookings } from "../../api";
 import type { Room, Booking } from "../../types";
+import {
+  formatDate,
+  formatTime,
+  isToday,
+} from "../../utils/dateUtils";
 
 export default function Dashboard() {
   const [rooms, setRooms] = useState<Room[]>([]);
@@ -22,11 +26,11 @@ export default function Dashboard() {
     async function fetchData() {
       try {
         const [roomsRes, bookingsRes] = await Promise.all([
-          getAllRooms(),
-          getAllBookings(),
+          getAllRooms(0, 100),
+          getAllBookings(0, 100),
         ]);
-        setRooms(roomsRes.data);
-        setBookings(bookingsRes.data);
+        setRooms(roomsRes.data.content);
+        setBookings(bookingsRes.data.content);
       } catch (err) {
         setError(err as string);
       } finally {
@@ -56,13 +60,9 @@ export default function Dashboard() {
     );
   }
 
-  const today = dayjs().format("YYYY-MM-DD");
-
   const totalRooms = rooms.length;
   const activeRooms = rooms.filter((r) => r.active).length;
-  const bookingsToday = bookings.filter((b) =>
-    dayjs(b.startTime).format("YYYY-MM-DD") === today
-  ).length;
+  const bookingsToday = bookings.filter((b) => isToday(b.startTime)).length;
   const confirmedBookings = bookings.filter(
     (b) => b.status === "CONFIRMED"
   ).length;
@@ -134,11 +134,10 @@ export default function Dashboard() {
                   {booking.bookedBy}
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-600">
-                  {dayjs(booking.startTime).format("YYYY-MM-DD")}
+                  {formatDate(booking.startTime)}
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-600">
-                  {dayjs(booking.startTime).format("HH:mm")} -{" "}
-                  {dayjs(booking.endTime).format("HH:mm")}
+                  {formatTime(booking.startTime)} - {formatTime(booking.endTime)}
                 </td>
                 <td className="px-6 py-4">
                   <Badge status={booking.status} />
