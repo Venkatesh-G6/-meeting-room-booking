@@ -18,6 +18,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -134,10 +136,7 @@ public class BookingServiceImpl implements BookingService {
             throw new BookingException("Cannot cancel a booking that has already started");
         }
 
-        // TODO Phase 9: Replace hardcoded admin
-        // check with hasRole('ADMIN') from JWT
-        if (!booking.getBookedBy().equals(requestedBy)
-                && !requestedBy.equals("admin@company.com")) {
+        if (!booking.getBookedBy().equals(requestedBy) && !isCurrentUserAdmin()) {
             throw new BookingException("You are not authorized to cancel this booking");
         }
 
@@ -158,6 +157,15 @@ public class BookingServiceImpl implements BookingService {
                         booking.getEndTime().toString()
                 )
         );
+    }
+
+    private boolean isCurrentUserAdmin() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            return false;
+        }
+        return authentication.getAuthorities().stream()
+                .anyMatch(authority -> authority.getAuthority().equals("ROLE_ADMIN"));
     }
 
     private void validateTimeRange(LocalDateTime startTime, LocalDateTime endTime) {

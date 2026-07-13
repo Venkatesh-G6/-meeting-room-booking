@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import {
   Loader2,
   CalendarX,
@@ -8,45 +8,30 @@ import dayjs from "dayjs";
 import { toast } from "react-hot-toast";
 import { Layout } from "../../components/layout";
 import { Badge, PageHeader, Pagination } from "../../components/common";
-import { getAllBookings, cancelBooking } from "../../api";
+import { useBookings, useCancelBooking } from "../../hooks";
 import type { Booking } from "../../types";
 import { formatDate, formatTime } from "../../utils/dateUtils";
 
 export default function Bookings() {
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchEmail, setSearchEmail] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [dateFilter, setDateFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
-  const [totalElements, setTotalElements] = useState(0);
   const pageSize = 10;
 
-  async function fetchBookings() {
-    try {
-      const res = await getAllBookings(currentPage, pageSize);
-      setBookings(res.data.content);
-      setTotalPages(res.data.totalPages);
-      setTotalElements(res.data.totalElements);
-    } catch (err) {
-      toast.error(err as string);
-    } finally {
-      setLoading(false);
-    }
-  }
+  const { data, isLoading } = useBookings(currentPage, pageSize);
+  const cancelBookingMutation = useCancelBooking();
 
-  useEffect(() => {
-    fetchBookings();
-  }, [currentPage]);
+  const bookings = data?.content ?? [];
+  const totalPages = data?.totalPages ?? 0;
+  const totalElements = data?.totalElements ?? 0;
 
   async function handleCancel(booking: Booking) {
     if (!window.confirm(`Cancel booking for ${booking.roomName}?`)) return;
     try {
-      await cancelBooking(booking.id);
+      await cancelBookingMutation.mutateAsync(booking.id);
       toast.success("Booking cancelled successfully");
       setCurrentPage(0);
-      await fetchBookings();
     } catch (err) {
       toast.error(err as string);
     }
@@ -108,7 +93,7 @@ export default function Bookings() {
       </div>
 
       <div className="bg-white rounded-lg shadow overflow-hidden">
-        {loading ? (
+        {isLoading ? (
           <div className="flex items-center justify-center h-48">
             <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
           </div>
@@ -171,7 +156,7 @@ export default function Bookings() {
         )}
       </div>
 
-      {!loading && totalPages > 0 && (
+      {!isLoading && totalPages > 0 && (
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}

@@ -11,7 +11,8 @@ import dayjs from "dayjs";
 import { toast } from "react-hot-toast";
 import { Layout } from "../../components/layout";
 import { Badge, PageHeader } from "../../components/common";
-import { checkAvailability, createBooking } from "../../api";
+import { useCheckAvailability, useCreateBooking } from "../../hooks";
+import { validateBookingForm, type BookingFormErrors } from "../../schemas";
 import type { Room, CreateBookingRequest } from "../../types";
 import {
   formatDateForApi,
@@ -26,7 +27,6 @@ export default function Availability() {
   const [endTime, setEndTime] = useState("");
   const [minCapacity, setMinCapacity] = useState(1);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [availableRooms, setAvailableRooms] = useState<Room[]>([]);
   const [bookingRoom, setBookingRoom] = useState<Room | null>(null);
@@ -37,7 +37,12 @@ export default function Availability() {
     startTime: "",
     endTime: "",
   });
-  const [saving, setSaving] = useState(false);
+  const [bookingFormErrors, setBookingFormErrors] = useState<BookingFormErrors>({});
+
+  const checkAvailabilityMutation = useCheckAvailability();
+  const createBookingMutation = useCreateBooking();
+  const loading = checkAvailabilityMutation.isPending;
+  const saving = createBookingMutation.isPending;
 
   function validate(): boolean {
     const newErrors: Record<string, string> = {};
@@ -61,9 +66,8 @@ export default function Availability() {
 
   async function handleSearch() {
     if (!validate()) return;
-    setLoading(true);
     try {
-      const res = await checkAvailability({
+      const res = await checkAvailabilityMutation.mutateAsync({
         date: formatDateForApi(new Date(date)),
         startTime: formatTimeForApi(startTime),
         endTime: formatTimeForApi(endTime),
@@ -73,8 +77,6 @@ export default function Availability() {
       setSearched(true);
     } catch (err) {
       toast.error(err as string);
-    } finally {
-      setLoading(false);
     }
   }
 
@@ -98,23 +100,25 @@ export default function Availability() {
       startTime: "",
       endTime: "",
     });
+    setBookingFormErrors({});
   }
 
   async function handleConfirmBooking() {
     if (!bookingRoom) return;
-    if (!bookingForm.title.trim()) {
-      toast.error("Meeting title is required");
+    const { success, errors } = validateBookingForm(
+      bookingForm,
+      bookingRoom.capacity
+    );
+    setBookingFormErrors(errors);
+    if (!success) {
       return;
     }
-    setSaving(true);
     try {
-      await createBooking(bookingForm);
+      await createBookingMutation.mutateAsync(bookingForm);
       toast.success("Booking confirmed successfully!");
       closeBookingModal();
     } catch (err) {
       toast.error(err as string);
-    } finally {
-      setSaving(false);
     }
   }
 
@@ -299,9 +303,14 @@ export default function Availability() {
                   onChange={(e) =>
                     setBookingForm({ ...bookingForm, title: e.target.value })
                   }
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    bookingFormErrors.title ? "border-red-400" : "border-gray-300"
+                  }`}
                   placeholder="e.g. Team Standup"
                 />
+                {bookingFormErrors.title && (
+                  <p className="text-xs text-red-500 mt-1">{bookingFormErrors.title}</p>
+                )}
               </div>
 
               <div>
@@ -319,11 +328,17 @@ export default function Availability() {
                       attendeeCount: Number(e.target.value),
                     })
                   }
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    bookingFormErrors.attendeeCount ? "border-red-400" : "border-gray-300"
+                  }`}
                 />
-                <p className="text-xs text-gray-400 mt-1">
-                  Max capacity: {bookingRoom.capacity}
-                </p>
+                {bookingFormErrors.attendeeCount ? (
+                  <p className="text-xs text-red-500 mt-1">{bookingFormErrors.attendeeCount}</p>
+                ) : (
+                  <p className="text-xs text-gray-400 mt-1">
+                    Max capacity: {bookingRoom.capacity}
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">

@@ -7,6 +7,7 @@ import com.yourcompany.roombooking.dto.response.AvailabilityResponse;
 import com.yourcompany.roombooking.dto.response.PagedResponse;
 import com.yourcompany.roombooking.dto.response.RoomResponse;
 import com.yourcompany.roombooking.service.RoomService;
+import com.yourcompany.roombooking.config.JwtTokenValidator;
 import com.yourcompany.roombooking.util.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -16,6 +17,8 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -24,7 +27,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/rooms")
+@RequestMapping("/api/v1/rooms")
 @Tag(name = "Room Management")
 public class RoomController {
 
@@ -58,8 +61,11 @@ public class RoomController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
-    public ResponseEntity<ApiResponse<RoomResponse>> createRoom(@Valid @RequestBody CreateRoomRequest request) {
-        RoomResponse response = roomService.createRoom(request);
+    public ResponseEntity<ApiResponse<RoomResponse>> createRoom(
+            @Valid @RequestBody CreateRoomRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        String actorEmail = JwtTokenValidator.extractEmail(jwt);
+        RoomResponse response = roomService.createRoom(request, actorEmail);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Room created successfully", response));
     }
@@ -84,15 +90,20 @@ public class RoomController {
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<RoomResponse>> updateRoom(
             @PathVariable UUID id,
-            @Valid @RequestBody UpdateRoomRequest request) {
-        RoomResponse response = roomService.updateRoom(id, request);
+            @Valid @RequestBody UpdateRoomRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        String actorEmail = JwtTokenValidator.extractEmail(jwt);
+        RoomResponse response = roomService.updateRoom(id, request, actorEmail);
         return ResponseEntity.ok(ApiResponse.success("Room updated successfully", response));
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/{id}/disable")
-    public ResponseEntity<ApiResponse<Void>> disableRoom(@PathVariable UUID id) {
-        roomService.disableRoom(id);
+    public ResponseEntity<ApiResponse<Void>> disableRoom(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal Jwt jwt) {
+        String actorEmail = JwtTokenValidator.extractEmail(jwt);
+        roomService.disableRoom(id, actorEmail);
         return ResponseEntity.ok(ApiResponse.success("Room disabled successfully", null));
     }
 }

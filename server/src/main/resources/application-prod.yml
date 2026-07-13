@@ -1,0 +1,19 @@
+# Production profile.
+# Requires real Azure AD (Entra ID) credentials via environment
+# variables. JWT authentication is enforced (see SecurityConfig).
+# Never commit real secrets to this file.
+
+app:
+  cors:
+    allowed-origins: ${FRONTEND_URL:https://meetspace.yourcompany.com}
+
+logging:
+  level:
+    root: WARN
+    com.yourcompany.roombooking: INFO
+    org.hibernate.SQL: WARN
+
+management:
+  endpoint:
+    health:
+      show-details: never

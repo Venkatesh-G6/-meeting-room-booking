@@ -1,9 +1,8 @@
-import { useEffect, useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { Loader2, X, Eye } from "lucide-react";
-import { toast } from "react-hot-toast";
 import { Layout } from "../../components/layout";
 import { PageHeader, Pagination } from "../../components/common";
-import { getAuditLogs } from "../../api";
+import { useAuditLogs } from "../../hooks";
 import type { AuditLog } from "../../types";
 import { formatDateTime } from "../../utils/dateUtils";
 
@@ -25,32 +24,16 @@ const actionOptions = [
 ];
 
 export default function AuditLogs() {
-  const [logs, setLogs] = useState<AuditLog[]>([]);
-  const [loading, setLoading] = useState(true);
   const [actionFilter, setActionFilter] = useState("ALL");
   const [searchEmail, setSearchEmail] = useState("");
   const [currentPage, setCurrentPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
-  const [totalElements, setTotalElements] = useState(0);
   const pageSize = 20;
   const [detailLog, setDetailLog] = useState<AuditLog | null>(null);
 
-  async function fetchLogs() {
-    try {
-      const res = await getAuditLogs(currentPage, pageSize);
-      setLogs(res.data.content);
-      setTotalPages(res.data.totalPages);
-      setTotalElements(res.data.totalElements);
-    } catch (err) {
-      toast.error(err as string);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    fetchLogs();
-  }, [currentPage]);
+  const { data, isLoading } = useAuditLogs(currentPage, pageSize);
+  const logs = data?.content ?? [];
+  const totalPages = data?.totalPages ?? 0;
+  const totalElements = data?.totalElements ?? 0;
 
   const filteredLogs = useMemo(() => {
     return logs.filter((log) => {
@@ -115,7 +98,7 @@ export default function AuditLogs() {
       </div>
 
       <div className="bg-white rounded-lg shadow overflow-hidden">
-        {loading ? (
+        {isLoading ? (
           <div className="flex items-center justify-center h-48">
             <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
           </div>
@@ -192,7 +175,7 @@ export default function AuditLogs() {
         )}
       </div>
 
-      {!loading && totalPages > 0 && (
+      {!isLoading && totalPages > 0 && (
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}

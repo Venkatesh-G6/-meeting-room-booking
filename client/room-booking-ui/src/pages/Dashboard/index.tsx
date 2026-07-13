@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import {
   DoorOpen,
   CheckCircle,
@@ -8,8 +7,7 @@ import {
 } from "lucide-react";
 import { Layout } from "../../components/layout";
 import { Badge, StatCard } from "../../components/common";
-import { getAllRooms, getAllBookings } from "../../api";
-import type { Room, Booking } from "../../types";
+import { useRooms, useBookings } from "../../hooks";
 import {
   formatDate,
   formatTime,
@@ -17,28 +15,21 @@ import {
 } from "../../utils/dateUtils";
 
 export default function Dashboard() {
-  const [rooms, setRooms] = useState<Room[]>([]);
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    data: roomsData,
+    isLoading: roomsLoading,
+    error: roomsError,
+  } = useRooms(0, 100);
+  const {
+    data: bookingsData,
+    isLoading: bookingsLoading,
+    error: bookingsError,
+  } = useBookings(0, 100);
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const [roomsRes, bookingsRes] = await Promise.all([
-          getAllRooms(0, 100),
-          getAllBookings(0, 100),
-        ]);
-        setRooms(roomsRes.data.content);
-        setBookings(bookingsRes.data.content);
-      } catch (err) {
-        setError(err as string);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchData();
-  }, []);
+  const rooms = roomsData?.content ?? [];
+  const bookings = bookingsData?.content ?? [];
+  const loading = roomsLoading || bookingsLoading;
+  const error = roomsError || bookingsError;
 
   if (loading) {
     return (
@@ -54,7 +45,7 @@ export default function Dashboard() {
     return (
       <Layout title="Dashboard">
         <div className="flex items-center justify-center h-64">
-          <p className="text-red-500">{error}</p>
+          <p className="text-red-500">{String(error)}</p>
         </div>
       </Layout>
     );

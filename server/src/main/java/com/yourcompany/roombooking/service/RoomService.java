@@ -12,15 +12,15 @@ import java.util.UUID;
 
 public interface RoomService {
 
-    RoomResponse createRoom(CreateRoomRequest request);
+    RoomResponse createRoom(CreateRoomRequest request, String actorEmail);
 
     RoomResponse getRoomById(UUID id);
 
     PagedResponse<RoomResponse> getAllRooms(int page, int size);
 
-    RoomResponse updateRoom(UUID id, UpdateRoomRequest request);
+    RoomResponse updateRoom(UUID id, UpdateRoomRequest request, String actorEmail);
 
-    void disableRoom(UUID id);
+    void disableRoom(UUID id, String actorEmail);
 
     AvailabilityResponse checkAvailability(AvailabilityRequest request);
 }

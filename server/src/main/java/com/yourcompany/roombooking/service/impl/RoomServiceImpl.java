@@ -40,7 +40,7 @@ public class RoomServiceImpl implements RoomService {
     }
 
     @Override
-    public RoomResponse createRoom(CreateRoomRequest request) {
+    public RoomResponse createRoom(CreateRoomRequest request, String actorEmail) {
         if (roomRepository.existsByRoomName(request.getRoomName())) {
             throw new BookingException("Room name already exists");
         }
@@ -55,10 +55,8 @@ public class RoomServiceImpl implements RoomService {
 
         Room savedRoom = roomRepository.save(room);
 
-        // TODO Phase 9: Replace "system" with
-        // JWT extracted email from SecurityContext
         auditService.log(
-                "system",
+                actorEmail,
                 AuditAction.ROOM_CREATED,
                 "ROOM",
                 savedRoom.getId().toString(),
@@ -91,7 +89,7 @@ public class RoomServiceImpl implements RoomService {
     }
 
     @Override
-    public RoomResponse updateRoom(UUID id, UpdateRoomRequest request) {
+    public RoomResponse updateRoom(UUID id, UpdateRoomRequest request, String actorEmail) {
         Room room = roomRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Room not found"));
 
@@ -102,10 +100,8 @@ public class RoomServiceImpl implements RoomService {
 
         Room updatedRoom = roomRepository.save(room);
 
-        // TODO Phase 9: Replace "system" with
-        // JWT extracted email from SecurityContext
         auditService.log(
-                "system",
+                actorEmail,
                 AuditAction.ROOM_UPDATED,
                 "ROOM",
                 updatedRoom.getId().toString(),
@@ -121,17 +117,15 @@ public class RoomServiceImpl implements RoomService {
     }
 
     @Override
-    public void disableRoom(UUID id) {
+    public void disableRoom(UUID id, String actorEmail) {
         Room room = roomRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Room not found"));
 
         room.setActive(false);
         roomRepository.save(room);
 
-        // TODO Phase 9: Replace "system" with
-        // JWT extracted email from SecurityContext
         auditService.log(
-                "system",
+                actorEmail,
                 AuditAction.ROOM_DISABLED,
                 "ROOM",
                 room.getId().toString(),

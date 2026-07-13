@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Plus,
   Pencil,
@@ -9,7 +9,8 @@ import {
 import { toast } from "react-hot-toast";
 import { Layout } from "../../components/layout";
 import { Badge, PageHeader, Pagination } from "../../components/common";
-import { getAllRooms, createRoom, updateRoom, disableRoom } from "../../api";
+import { useRooms, useCreateRoom, useUpdateRoom, useDisableRoom } from "../../hooks";
+import { validateRoomForm, type RoomFormErrors } from "../../schemas";
 import type { Room, CreateRoomRequest } from "../../types";
 
 const emptyForm: CreateRoomRequest = {
@@ -20,33 +21,22 @@ const emptyForm: CreateRoomRequest = {
 };
 
 export default function Rooms() {
-  const [rooms, setRooms] = useState<Room[]>([]);
-  const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
   const [form, setForm] = useState<CreateRoomRequest>(emptyForm);
-  const [saving, setSaving] = useState(false);
+  const [formErrors, setFormErrors] = useState<RoomFormErrors>({});
   const [currentPage, setCurrentPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
-  const [totalElements, setTotalElements] = useState(0);
   const pageSize = 10;
 
-  async function fetchRooms() {
-    try {
-      const res = await getAllRooms(currentPage, pageSize);
-      setRooms(res.data.content);
-      setTotalPages(res.data.totalPages);
-      setTotalElements(res.data.totalElements);
-    } catch (err) {
-      toast.error(err as string);
-    } finally {
-      setLoading(false);
-    }
-  }
+  const { data, isLoading } = useRooms(currentPage, pageSize);
+  const createRoomMutation = useCreateRoom();
+  const updateRoomMutation = useUpdateRoom();
+  const disableRoomMutation = useDisableRoom();
 
-  useEffect(() => {
-    fetchRooms();
-  }, [currentPage]);
+  const rooms = data?.content ?? [];
+  const totalPages = data?.totalPages ?? 0;
+  const totalElements = data?.totalElements ?? 0;
+  const saving = createRoomMutation.isPending || updateRoomMutation.isPending;
 
   function openAddModal() {
     setEditingRoom(null);
@@ -69,39 +59,36 @@ export default function Rooms() {
     setModalOpen(false);
     setEditingRoom(null);
     setForm(emptyForm);
+    setFormErrors({});
   }
 
   async function handleSave() {
-    if (!form.roomName.trim() || !form.location.trim()) {
-      toast.error("Room name and location are required");
+    const { success, errors } = validateRoomForm(form);
+    setFormErrors(errors);
+    if (!success) {
       return;
     }
-    setSaving(true);
     try {
       if (editingRoom) {
-        await updateRoom(editingRoom.id, form);
+        await updateRoomMutation.mutateAsync({ id: editingRoom.id, data: form });
         toast.success("Room updated successfully");
       } else {
-        await createRoom(form);
+        await createRoomMutation.mutateAsync(form);
         toast.success("Room created successfully");
       }
       closeModal();
       setCurrentPage(0);
-      await fetchRooms();
     } catch (err) {
       toast.error(err as string);
-    } finally {
-      setSaving(false);
     }
   }
 
   async function handleDisable(room: Room) {
     if (!window.confirm(`Disable ${room.roomName}?`)) return;
     try {
-      await disableRoom(room.id);
+      await disableRoomMutation.mutateAsync(room.id);
       toast.success("Room disabled successfully");
       setCurrentPage(0);
-      await fetchRooms();
     } catch (err) {
       toast.error(err as string);
     }
@@ -124,7 +111,7 @@ export default function Rooms() {
       />
 
       <div className="bg-white rounded-lg shadow overflow-hidden">
-        {loading ? (
+        {isLoading ? (
           <div className="flex items-center justify-center h-48">
             <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
           </div>
@@ -207,7 +194,7 @@ export default function Rooms() {
         )}
       </div>
 
-      {!loading && totalPages > 0 && (
+      {!isLoading && totalPages > 0 && (
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}
@@ -243,9 +230,14 @@ export default function Rooms() {
                   onChange={(e) =>
                     setForm({ ...form, roomName: e.target.value })
                   }
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    formErrors.roomName ? "border-red-400" : "border-gray-300"
+                  }`}
                   placeholder="e.g. Conference Room A"
                 />
+                {formErrors.roomName && (
+                  <p className="text-xs text-red-500 mt-1">{formErrors.roomName}</p>
+                )}
               </div>
 
               <div>
@@ -279,8 +271,13 @@ export default function Rooms() {
                   onChange={(e) =>
                     setForm({ ...form, capacity: Number(e.target.value) })
                   }
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    formErrors.capacity ? "border-red-400" : "border-gray-300"
+                  }`}
                 />
+                {formErrors.capacity && (
+                  <p className="text-xs text-red-500 mt-1">{formErrors.capacity}</p>
+                )}
               </div>
 
               <div>
@@ -293,9 +290,14 @@ export default function Rooms() {
                   onChange={(e) =>
                     setForm({ ...form, location: e.target.value })
                   }
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    formErrors.location ? "border-red-400" : "border-gray-300"
+                  }`}
                   placeholder="e.g. Floor 3"
                 />
+                {formErrors.location && (
+                  <p className="text-xs text-red-500 mt-1">{formErrors.location}</p>
+                )}
               </div>
             </div>
 
