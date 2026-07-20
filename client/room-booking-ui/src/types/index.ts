@@ -50,7 +50,7 @@ export interface CreateRoomRequest {
   roomName: string
   roomType: 'MEETING' | 'TRAINING' | 'POD'
   capacity: number
-  location: string
+  location?: string
 }
 
 export interface CreateBookingRequest {

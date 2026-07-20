@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import toast from "react-hot-toast";
 import {
   getAllRooms,
+  getRoomById,
   createRoom,
   updateRoom,
   disableRoom,
-  checkAvailability,
 } from "../api";
 import type { CreateRoomRequest } from "../types";
 
@@ -21,12 +22,24 @@ export function useRooms(page: number, size: number) {
   });
 }
 
+export function useRoom(id: number) {
+  return useQuery({
+    queryKey: ["room", id],
+    queryFn: async () => (await getRoomById(String(id))).data,
+    enabled: id > 0,
+  });
+}
+
 export function useCreateRoom() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: CreateRoomRequest) => createRoom(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rooms"] });
+      toast.success("Room created successfully");
+    },
+    onError: (error: string) => {
+      toast.error(error);
     },
   });
 }
@@ -38,6 +51,10 @@ export function useUpdateRoom() {
       updateRoom(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rooms"] });
+      toast.success("Room updated successfully");
+    },
+    onError: (error: string) => {
+      toast.error(error);
     },
   });
 }
@@ -48,17 +65,10 @@ export function useDisableRoom() {
     mutationFn: (id: string) => disableRoom(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rooms"] });
+      toast.success("Room disabled successfully");
     },
-  });
-}
-
-export function useCheckAvailability() {
-  return useMutation({
-    mutationFn: (params: {
-      date: string;
-      startTime: string;
-      endTime: string;
-      minCapacity?: number;
-    }) => checkAvailability(params),
+    onError: (error: string) => {
+      toast.error(error);
+    },
   });
 }

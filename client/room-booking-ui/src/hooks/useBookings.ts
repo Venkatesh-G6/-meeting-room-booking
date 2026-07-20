@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import toast from "react-hot-toast";
 import {
   getAllBookings,
   createBooking,
@@ -20,11 +21,11 @@ export function useBookings(page: number, size: number) {
   });
 }
 
-export function useMyBookings(bookedBy: string) {
+export function useMyBookings(email: string) {
   return useQuery({
-    queryKey: ["bookings", "my", bookedBy],
-    queryFn: async () => (await getMyBookings(bookedBy)).data,
-    enabled: !!bookedBy,
+    queryKey: ["myBookings", email],
+    queryFn: async () => (await getMyBookings(email)).data,
+    enabled: !!email,
   });
 }
 
@@ -35,6 +36,10 @@ export function useCreateBooking() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bookings"] });
       queryClient.invalidateQueries({ queryKey: ["rooms"] });
+      toast.success("Room booked successfully");
+    },
+    onError: (error: string) => {
+      toast.error(error);
     },
   });
 }
@@ -45,7 +50,10 @@ export function useCancelBooking() {
     mutationFn: (id: string) => cancelBooking(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bookings"] });
-      queryClient.invalidateQueries({ queryKey: ["rooms"] });
+      toast.success("Booking cancelled successfully");
+    },
+    onError: (error: string) => {
+      toast.error(error);
     },
   });
 }

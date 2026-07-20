@@ -15,3 +15,8 @@ spring:
       - org.springframework.boot.autoconfigure.security.oauth2.resource.servlet.OAuth2ResourceServerAutoConfiguration
       - com.azure.spring.cloud.autoconfigure.implementation.activedirectory.AzureActiveDirectoryAutoConfiguration
       - com.azure.spring.cloud.autoconfigure.implementation.aad.security.AzureActiveDirectorySecurityAutoConfiguration
+
+bot:
+  app-id: dev-bot-id
+  app-password: dev-bot-password
+  name: RoomBookingBot (Dev)

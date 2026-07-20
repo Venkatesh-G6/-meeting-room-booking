@@ -8,118 +8,84 @@ import {
   Users,
 } from "lucide-react";
 import dayjs from "dayjs";
-import { toast } from "react-hot-toast";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Layout } from "../../components/layout";
 import { Badge, PageHeader } from "../../components/common";
-import { useCheckAvailability, useCreateBooking } from "../../hooks";
-import { validateBookingForm, type BookingFormErrors } from "../../schemas";
-import type { Room, CreateBookingRequest } from "../../types";
+import { useAvailability, useCreateBooking } from "../../hooks";
+import { availabilitySchema, bookingSchema, type AvailabilityFormData, type BookingFormData } from "../../utils/validationSchemas";
+import type { Room } from "../../types";
 import {
   formatDateForApi,
   formatTimeForApi,
   formatTime,
-  isPast,
 } from "../../utils/dateUtils";
 
 export default function Availability() {
-  const [date, setDate] = useState("");
-  const [startTime, setStartTime] = useState("");
-  const [endTime, setEndTime] = useState("");
-  const [minCapacity, setMinCapacity] = useState(1);
-  const [errors, setErrors] = useState<Record<string, string>>({});
   const [searched, setSearched] = useState(false);
-  const [availableRooms, setAvailableRooms] = useState<Room[]>([]);
   const [bookingRoom, setBookingRoom] = useState<Room | null>(null);
-  const [bookingForm, setBookingForm] = useState<CreateBookingRequest>({
-    roomId: "",
-    title: "",
-    attendeeCount: 1,
-    startTime: "",
-    endTime: "",
+  const [searchDate, setSearchDate] = useState("");
+  const [searchStartTime, setSearchStartTime] = useState("");
+  const [searchEndTime, setSearchEndTime] = useState("");
+
+  const {
+    register: registerSearch,
+    handleSubmit: handleSearchSubmit,
+    formState: { errors: searchErrors }
+  } = useForm<AvailabilityFormData>({
+    resolver: zodResolver(availabilitySchema),
+    defaultValues: {
+      minCapacity: 1
+    }
   });
-  const [bookingFormErrors, setBookingFormErrors] = useState<BookingFormErrors>({});
 
-  const checkAvailabilityMutation = useCheckAvailability();
+  const {
+    register: registerBooking,
+    handleSubmit: handleBookingSubmit,
+    reset: resetBooking,
+    setValue: setBookingValue,
+    formState: { errors: bookingErrors, isSubmitting: bookingSubmitting }
+  } = useForm<BookingFormData>({
+    resolver: zodResolver(bookingSchema)
+  });
+
   const createBookingMutation = useCreateBooking();
-  const loading = checkAvailabilityMutation.isPending;
-  const saving = createBookingMutation.isPending;
 
-  function validate(): boolean {
-    const newErrors: Record<string, string> = {};
+  const availabilityParams = {
+    date: formatDateForApi(new Date(searchDate)),
+    startTime: formatTimeForApi(searchStartTime),
+    endTime: formatTimeForApi(searchEndTime),
+    minCapacity: 1,
+  };
+  const { data: availabilityData, isLoading: availabilityLoading } = useAvailability(availabilityParams, searched);
+  const availableRooms = availabilityData?.availableRooms ?? [];
 
-    if (!date) {
-      newErrors.date = "Date is required";
-    } else if (isPast(date)) {
-      newErrors.date = "Date cannot be in the past";
-    }
-
-    if (!startTime) newErrors.startTime = "Start time is required";
-    if (!endTime) newErrors.endTime = "End time is required";
-
-    if (startTime && endTime && endTime <= startTime) {
-      newErrors.endTime = "End time must be after start time";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  }
-
-  async function handleSearch() {
-    if (!validate()) return;
-    try {
-      const res = await checkAvailabilityMutation.mutateAsync({
-        date: formatDateForApi(new Date(date)),
-        startTime: formatTimeForApi(startTime),
-        endTime: formatTimeForApi(endTime),
-        minCapacity,
-      });
-      setAvailableRooms(res.data.availableRooms);
-      setSearched(true);
-    } catch (err) {
-      toast.error(err as string);
-    }
+  function onSearchSubmit(data: AvailabilityFormData) {
+    setSearchDate(data.date);
+    setSearchStartTime(data.startTime);
+    setSearchEndTime(data.endTime);
+    setSearched(true);
   }
 
   function openBookingModal(room: Room) {
     setBookingRoom(room);
-    setBookingForm({
-      roomId: room.id,
-      title: "",
-      attendeeCount: 1,
-      startTime: `${date}T${startTime}`,
-      endTime: `${date}T${endTime}`,
-    });
+    setBookingValue("roomId", Number(room.id));
+    setBookingValue("bookedBy", "user@example.com");
+    setBookingValue("startTime", `${searchDate}T${searchStartTime}`);
+    setBookingValue("endTime", `${searchDate}T${searchEndTime}`);
   }
 
   function closeBookingModal() {
     setBookingRoom(null);
-    setBookingForm({
-      roomId: "",
-      title: "",
-      attendeeCount: 1,
-      startTime: "",
-      endTime: "",
-    });
-    setBookingFormErrors({});
+    resetBooking();
   }
 
-  async function handleConfirmBooking() {
-    if (!bookingRoom) return;
-    const { success, errors } = validateBookingForm(
-      bookingForm,
-      bookingRoom.capacity
-    );
-    setBookingFormErrors(errors);
-    if (!success) {
-      return;
-    }
-    try {
-      await createBookingMutation.mutateAsync(bookingForm);
-      toast.success("Booking confirmed successfully!");
-      closeBookingModal();
-    } catch (err) {
-      toast.error(err as string);
-    }
+  function onBookingSubmit(data: BookingFormData) {
+    createBookingMutation.mutate({
+      ...data,
+      roomId: String(data.roomId)
+    });
+    closeBookingModal();
   }
 
   const today = dayjs().format("YYYY-MM-DD");
@@ -131,7 +97,7 @@ export default function Availability() {
         subtitle="Find available rooms for your meeting"
       />
 
-      <div className="bg-white rounded-lg shadow p-6 mb-6">
+      <form onSubmit={handleSearchSubmit(onSearchSubmit)} className="bg-white rounded-lg shadow p-6 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -140,12 +106,11 @@ export default function Availability() {
             <input
               type="date"
               min={today}
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
+              {...registerSearch("date")}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            {errors.date && (
-              <p className="text-xs text-red-500 mt-1">{errors.date}</p>
+            {searchErrors.date && (
+              <p className="text-xs text-red-500 mt-1">{searchErrors.date.message}</p>
             )}
           </div>
 
@@ -155,12 +120,11 @@ export default function Availability() {
             </label>
             <input
               type="time"
-              value={startTime}
-              onChange={(e) => setStartTime(e.target.value)}
+              {...registerSearch("startTime")}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            {errors.startTime && (
-              <p className="text-xs text-red-500 mt-1">{errors.startTime}</p>
+            {searchErrors.startTime && (
+              <p className="text-xs text-red-500 mt-1">{searchErrors.startTime.message}</p>
             )}
           </div>
 
@@ -170,12 +134,11 @@ export default function Availability() {
             </label>
             <input
               type="time"
-              value={endTime}
-              onChange={(e) => setEndTime(e.target.value)}
+              {...registerSearch("endTime")}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            {errors.endTime && (
-              <p className="text-xs text-red-500 mt-1">{errors.endTime}</p>
+            {searchErrors.endTime && (
+              <p className="text-xs text-red-500 mt-1">{searchErrors.endTime.message}</p>
             )}
           </div>
 
@@ -186,26 +149,28 @@ export default function Availability() {
             <input
               type="number"
               min={1}
-              value={minCapacity}
-              onChange={(e) => setMinCapacity(Number(e.target.value))}
+              {...registerSearch("minCapacity", { valueAsNumber: true })}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
+            {searchErrors.minCapacity && (
+              <p className="text-xs text-red-500 mt-1">{searchErrors.minCapacity.message}</p>
+            )}
           </div>
         </div>
 
         <button
-          onClick={handleSearch}
-          disabled={loading}
+          type="submit"
+          disabled={availabilityLoading}
           className="w-full mt-4 flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
         >
-          {loading ? (
+          {availabilityLoading ? (
             <Loader2 className="w-4 h-4 animate-spin" />
           ) : (
             <Search className="w-4 h-4" />
           )}
           Check Availability
         </button>
-      </div>
+      </form>
 
       {searched && (
         <div>
@@ -280,7 +245,7 @@ export default function Availability() {
               </button>
             </div>
 
-            <div className="px-6 py-4 space-y-4">
+            <form id="booking-form" onSubmit={handleBookingSubmit(onBookingSubmit)} className="px-6 py-4 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Room
@@ -299,17 +264,14 @@ export default function Availability() {
                 </label>
                 <input
                   type="text"
-                  value={bookingForm.title}
-                  onChange={(e) =>
-                    setBookingForm({ ...bookingForm, title: e.target.value })
-                  }
+                  {...registerBooking("title")}
                   className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    bookingFormErrors.title ? "border-red-400" : "border-gray-300"
+                    bookingErrors.title ? "border-red-400" : "border-gray-300"
                   }`}
                   placeholder="e.g. Team Standup"
                 />
-                {bookingFormErrors.title && (
-                  <p className="text-xs text-red-500 mt-1">{bookingFormErrors.title}</p>
+                {bookingErrors.title && (
+                  <p className="text-xs text-red-500 mt-1">{bookingErrors.title.message}</p>
                 )}
               </div>
 
@@ -321,19 +283,13 @@ export default function Availability() {
                   type="number"
                   min={1}
                   max={bookingRoom.capacity}
-                  value={bookingForm.attendeeCount}
-                  onChange={(e) =>
-                    setBookingForm({
-                      ...bookingForm,
-                      attendeeCount: Number(e.target.value),
-                    })
-                  }
+                  {...registerBooking("attendeeCount", { valueAsNumber: true })}
                   className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    bookingFormErrors.attendeeCount ? "border-red-400" : "border-gray-300"
+                    bookingErrors.attendeeCount ? "border-red-400" : "border-gray-300"
                   }`}
                 />
-                {bookingFormErrors.attendeeCount ? (
-                  <p className="text-xs text-red-500 mt-1">{bookingFormErrors.attendeeCount}</p>
+                {bookingErrors.attendeeCount ? (
+                  <p className="text-xs text-red-500 mt-1">{bookingErrors.attendeeCount.message}</p>
                 ) : (
                   <p className="text-xs text-gray-400 mt-1">
                     Max capacity: {bookingRoom.capacity}
@@ -348,7 +304,7 @@ export default function Availability() {
                   </label>
                   <input
                     type="text"
-                    value={formatTime(bookingForm.startTime)}
+                    value={formatTime(`${searchDate}T${searchStartTime}`)}
                     disabled
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-500"
                   />
@@ -359,28 +315,30 @@ export default function Availability() {
                   </label>
                   <input
                     type="text"
-                    value={formatTime(bookingForm.endTime)}
+                    value={formatTime(`${searchDate}T${searchEndTime}`)}
                     disabled
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-500"
                   />
                 </div>
               </div>
-            </div>
+            </form>
 
             <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200">
               <button
+                type="button"
                 onClick={closeBookingModal}
                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
               >
                 Cancel
               </button>
               <button
-                onClick={handleConfirmBooking}
-                disabled={saving}
+                type="submit"
+                form="booking-form"
+                disabled={bookingSubmitting}
                 className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
               >
-                {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                Confirm Booking
+                {bookingSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                {bookingSubmitting ? "Saving..." : "Confirm Booking"}
               </button>
             </div>
           </div>

@@ -1,50 +1,58 @@
-version: "3.8"
+version: '3.8'
 
 services:
-  db:
+  mysql:
     image: mysql:8.0
+    container_name: roombooking-mysql
+    restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-rootpassword}
       MYSQL_DATABASE: roombooking_db
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
     ports:
       - "3306:3306"
     volumes:
-      - db_data:/var/lib/mysql
+      - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD}"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
 
-  server:
+  backend:
     build:
       context: ./server
       dockerfile: Dockerfile
+    container_name: roombooking-backend
+    restart: unless-stopped
     ports:
       - "8080:8080"
     environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
-      DB_URL: jdbc:mysql://db:3306/roombooking_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_PROFILES_ACTIVE: dev
+      DB_URL: jdbc:mysql://mysql:3306/roombooking_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC
       DB_USERNAME: root
-      DB_PASSWORD: ${DB_PASSWORD:-rootpassword}
-      AZURE_TENANT_ID: ${AZURE_TENANT_ID:-}
-      AZURE_CLIENT_ID: ${AZURE_CLIENT_ID:-}
-      AZURE_CLIENT_SECRET: ${AZURE_CLIENT_SECRET:-}
-      AZURE_APP_ID_URI: ${AZURE_APP_ID_URI:-}
+      DB_PASSWORD: ${DB_PASSWORD}
     depends_on:
-      db:
+      mysql:
         condition: service_healthy
-    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-  client:
+  frontend:
     build:
       context: ./client/room-booking-ui
       dockerfile: Dockerfile
-    ports:
-      - "3000:80"
-    depends_on:
-      - server
+    container_name: roombooking-frontend
     restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
 
 volumes:
-  db_data:
+  mysql_data:
+    driver: local

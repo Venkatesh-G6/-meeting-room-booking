@@ -24,5 +24,6 @@ public class BookingResponse {
     private LocalDateTime startTime;
     private LocalDateTime endTime;
     private BookingStatus status;
+    private String graphEventId;
     private LocalDateTime createdAt;
 }

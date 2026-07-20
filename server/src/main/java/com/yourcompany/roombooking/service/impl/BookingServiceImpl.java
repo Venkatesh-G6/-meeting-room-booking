@@ -11,9 +11,11 @@ import com.yourcompany.roombooking.enums.AuditAction;
 import com.yourcompany.roombooking.enums.BookingStatus;
 import com.yourcompany.roombooking.exception.BookingException;
 import com.yourcompany.roombooking.exception.ResourceNotFoundException;
+import com.yourcompany.roombooking.graph.GraphService;
 import com.yourcompany.roombooking.repository.BookingRepository;
 import com.yourcompany.roombooking.repository.RoomRepository;
 import com.yourcompany.roombooking.service.BookingService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -28,17 +30,20 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class BookingServiceImpl implements BookingService {
 
     private final BookingRepository bookingRepository;
     private final RoomRepository roomRepository;
     private final AuditService auditService;
+    private final GraphService graphService;
 
-    public BookingServiceImpl(BookingRepository bookingRepository, RoomRepository roomRepository, AuditService auditService) {
+    public BookingServiceImpl(BookingRepository bookingRepository, RoomRepository roomRepository, AuditService auditService, GraphService graphService) {
         this.bookingRepository = bookingRepository;
         this.roomRepository = roomRepository;
         this.auditService = auditService;
+        this.graphService = graphService;
     }
 
     @Override
@@ -93,7 +98,23 @@ public class BookingServiceImpl implements BookingService {
                 )
         );
 
-        return mapToResponse(savedBooking);
+        BookingResponse response = mapToResponse(savedBooking);
+
+        try {
+            String eventId = graphService.createCalendarEvent(response);
+            if (eventId != null) {
+                savedBooking.setGraphEventId(eventId);
+                bookingRepository.save(savedBooking);
+                response.setGraphEventId(eventId);
+                log.info("Graph event created: {}", eventId);
+            }
+        } catch (Exception e) {
+            log.warn("Graph calendar sync failed for booking {}: {}", savedBooking.getId(), e.getMessage());
+            // Do NOT fail the booking
+            // Graph sync failure is non-critical
+        }
+
+        return response;
     }
 
     @Override
@@ -157,8 +178,25 @@ public class BookingServiceImpl implements BookingService {
                         booking.getEndTime().toString()
                 )
         );
+
+        try {
+            if (booking.getGraphEventId() != null) {
+                graphService.cancelCalendarEvent(booking.getGraphEventId());
+                log.info("Graph event cancelled: {}", booking.getGraphEventId());
+            }
+        } catch (Exception e) {
+            log.warn("Graph cancellation failed for booking {}: {}", booking.getId(), e.getMessage());
+            // Do NOT fail the cancellation
+        }
     }
 
+    /*
+     * TODO Phase 9 — Teams Integration:
+     * Replace hardcoded admin check with
+     * proper role verification from JWT.
+     * SecurityContextHolder will have
+     * ROLE_ADMIN from Entra ID token.
+     */
     private boolean isCurrentUserAdmin() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null) {
@@ -213,6 +251,7 @@ public class BookingServiceImpl implements BookingService {
                 .startTime(booking.getStartTime())
                 .endTime(booking.getEndTime())
                 .status(booking.getStatus())
+                .graphEventId(booking.getGraphEventId())
                 .createdAt(booking.getCreatedAt())
                 .build();
     }

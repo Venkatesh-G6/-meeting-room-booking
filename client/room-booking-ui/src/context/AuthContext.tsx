@@ -1,106 +1,63 @@
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  type ReactNode,
-} from "react";
-import * as microsoftTeams from "@microsoft/teams-js";
+import { createContext, useEffect, useState, type ReactNode } from "react";
 
-interface AuthUser {
-  displayName?: string;
-  userPrincipalName?: string;
+export interface AuthUser {
+  email: string;
+  displayName: string;
+  role: "EMPLOYEE" | "ADMIN";
   token: string;
 }
 
-interface AuthContextValue {
+export interface AuthContextType {
   user: AuthUser | null;
+  isAuthenticated: boolean;
+  isAdmin: boolean;
   isLoading: boolean;
-  error: string | null;
-  isInTeams: boolean;
-  getToken: () => Promise<string>;
-  retry: () => void;
+  login: (user: AuthUser) => void;
+  logout: () => void;
 }
 
-const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Module-level cache so apiClient (outside React) can read the latest token
-let cachedToken: string | null = null;
-export function getCachedToken(): string | null {
-  return cachedToken;
-}
+/*
+ * Dev mode: user set via login page mock login button.
+ * Phase 9: MSAL will call login() with real Microsoft token and
+ * user profile from Entra ID.
+ */
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isInTeams, setIsInTeams] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
-    let cancelled = false;
-
-    async function initialize() {
-      setIsLoading(true);
-      setError(null);
+    const stored = sessionStorage.getItem("roombooking_user");
+    if (stored) {
       try {
-        await microsoftTeams.app.initialize();
-        if (cancelled) return;
-        setIsInTeams(true);
-
-        const context = await microsoftTeams.app.getContext();
-        const token = await microsoftTeams.authentication.getAuthToken();
-        if (cancelled) return;
-
-        cachedToken = token;
-        setUser({
-          displayName: context.user?.displayName,
-          userPrincipalName: context.user?.userPrincipalName,
-          token,
-        });
+        setUser(JSON.parse(stored));
       } catch (err) {
-        if (cancelled) return;
-        setIsInTeams(false);
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Failed to authenticate with Microsoft Teams. This app must be opened inside Teams."
-        );
-      } finally {
-        if (!cancelled) setIsLoading(false);
+        console.error("Failed to parse stored user:", err);
       }
     }
+    setIsLoading(false);
+  }, []);
 
-    initialize();
-    return () => {
-      cancelled = true;
-    };
-  }, [retryCount]);
+  const login = (userData: AuthUser) => {
+    setUser(userData);
+    sessionStorage.setItem("roombooking_user", JSON.stringify(userData));
+  };
 
-  async function getToken(): Promise<string> {
-    if (cachedToken) return cachedToken;
-    const token = await microsoftTeams.authentication.getAuthToken();
-    cachedToken = token;
-    return token;
-  }
+  const logout = () => {
+    setUser(null);
+    sessionStorage.removeItem("roombooking_user");
+    window.location.href = "/login";
+  };
 
-  function retry() {
-    setRetryCount((c) => c + 1);
-  }
+  const isAuthenticated = !!user;
+  const isAdmin = user?.role === "ADMIN";
 
   return (
-    <AuthContext.Provider
-      value={{ user, isLoading, error, isInTeams, getToken, retry }}
-    >
+    <AuthContext.Provider value={{ user, isAuthenticated, isAdmin, isLoading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
 }
 
-export function useAuth(): AuthContextValue {
-  const ctx = useContext(AuthContext);
-  if (!ctx) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return ctx;
-}

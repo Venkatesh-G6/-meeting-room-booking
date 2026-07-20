@@ -126,6 +126,27 @@
             <artifactId>spring-security-test</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <!-- Microsoft Bot Framework Integration -->
+        <dependency>
+            <groupId>com.microsoft.bot</groupId>
+            <artifactId>bot-integration-spring</artifactId>
+            <version>4.14.2</version>
+        </dependency>
+
+        <!-- Microsoft Graph SDK -->
+        <dependency>
+            <groupId>com.microsoft.graph</groupId>
+            <artifactId>microsoft-graph</artifactId>
+            <version>5.77.0</version>
+        </dependency>
+
+        <!-- MSAL4J -->
+        <dependency>
+            <groupId>com.microsoft.azure</groupId>
+            <artifactId>msal4j</artifactId>
+            <version>1.14.0</version>
+        </dependency>
     </dependencies>
 
     <build>

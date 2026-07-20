@@ -54,6 +54,9 @@ public class Booking {
     @Builder.Default
     private BookingStatus status = BookingStatus.CONFIRMED;
 
+    @Column(name = "graph_event_id")
+    private String graphEventId;
+
     @CreatedDate
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

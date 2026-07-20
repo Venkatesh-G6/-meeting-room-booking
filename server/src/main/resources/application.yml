@@ -58,6 +58,16 @@ management:
     health:
       show-details: never
 
+# Teams Bot credentials
+# BOT_APP_ID and BOT_APP_PASSWORD
+# come from Azure Bot Service registration
+# Phase 9: Register bot at
+# portal.azure.com → Azure Bot Service
+bot:
+  app-id: ${BOT_APP_ID:dev-bot-id}
+  app-password: ${BOT_APP_PASSWORD:dev-bot-password}
+  name: RoomBookingBot
+
 logging:
   level:
     com.yourcompany.roombooking: DEBUG

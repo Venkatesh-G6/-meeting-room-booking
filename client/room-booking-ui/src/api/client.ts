@@ -1,5 +1,5 @@
 import axios from "axios";
-import { getCachedToken } from "../context/AuthContext";
+import { getCachedToken } from "../context/auth-utils";
 
 const apiClient = axios.create({
   baseURL: "http://localhost:8080/api/v1",

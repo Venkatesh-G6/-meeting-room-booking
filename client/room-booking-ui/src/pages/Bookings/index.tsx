@@ -5,7 +5,6 @@ import {
   Ban,
 } from "lucide-react";
 import dayjs from "dayjs";
-import { toast } from "react-hot-toast";
 import { Layout } from "../../components/layout";
 import { Badge, PageHeader, Pagination } from "../../components/common";
 import { useBookings, useCancelBooking } from "../../hooks";
@@ -22,19 +21,13 @@ export default function Bookings() {
   const { data, isLoading } = useBookings(currentPage, pageSize);
   const cancelBookingMutation = useCancelBooking();
 
-  const bookings = data?.content ?? [];
   const totalPages = data?.totalPages ?? 0;
   const totalElements = data?.totalElements ?? 0;
 
-  async function handleCancel(booking: Booking) {
+  function handleCancel(booking: Booking) {
     if (!window.confirm(`Cancel booking for ${booking.roomName}?`)) return;
-    try {
-      await cancelBookingMutation.mutateAsync(booking.id);
-      toast.success("Booking cancelled successfully");
-      setCurrentPage(0);
-    } catch (err) {
-      toast.error(err as string);
-    }
+    cancelBookingMutation.mutate(booking.id);
+    setCurrentPage(0);
   }
 
   function clearFilters() {
@@ -44,6 +37,7 @@ export default function Bookings() {
   }
 
   const filteredBookings = useMemo(() => {
+    const bookings = data?.content ?? [];
     return bookings.filter((b) => {
       if (searchEmail && !b.bookedBy.toLowerCase().includes(searchEmail.toLowerCase()))
         return false;
@@ -52,7 +46,7 @@ export default function Bookings() {
         return false;
       return true;
     });
-  }, [bookings, searchEmail, statusFilter, dateFilter]);
+  }, [data, searchEmail, statusFilter, dateFilter]);
 
   return (
     <Layout title="Bookings">

@@ -31,11 +31,11 @@ export default function AuditLogs() {
   const [detailLog, setDetailLog] = useState<AuditLog | null>(null);
 
   const { data, isLoading } = useAuditLogs(currentPage, pageSize);
-  const logs = data?.content ?? [];
   const totalPages = data?.totalPages ?? 0;
   const totalElements = data?.totalElements ?? 0;
 
   const filteredLogs = useMemo(() => {
+    const logs = data?.content ?? [];
     return logs.filter((log) => {
       if (actionFilter !== "ALL" && log.action !== actionFilter) return false;
       if (
@@ -45,7 +45,7 @@ export default function AuditLogs() {
         return false;
       return true;
     });
-  }, [logs, actionFilter, searchEmail]);
+  }, [data, actionFilter, searchEmail]);
 
   function clearFilters() {
     setActionFilter("ALL");

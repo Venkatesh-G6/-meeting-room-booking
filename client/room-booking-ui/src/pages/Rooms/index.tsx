@@ -6,27 +6,33 @@ import {
   Loader2,
   X,
 } from "lucide-react";
-import { toast } from "react-hot-toast";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Layout } from "../../components/layout";
 import { Badge, PageHeader, Pagination } from "../../components/common";
 import { useRooms, useCreateRoom, useUpdateRoom, useDisableRoom } from "../../hooks";
-import { validateRoomForm, type RoomFormErrors } from "../../schemas";
-import type { Room, CreateRoomRequest } from "../../types";
-
-const emptyForm: CreateRoomRequest = {
-  roomName: "",
-  roomType: "MEETING",
-  capacity: 1,
-  location: "",
-};
+import { roomSchema, type RoomFormData } from "../../utils/validationSchemas";
+import type { Room } from "../../types";
 
 export default function Rooms() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
-  const [form, setForm] = useState<CreateRoomRequest>(emptyForm);
-  const [formErrors, setFormErrors] = useState<RoomFormErrors>({});
   const [currentPage, setCurrentPage] = useState(0);
   const pageSize = 10;
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    setValue,
+    formState: { errors, isSubmitting }
+  } = useForm<RoomFormData>({
+    resolver: zodResolver(roomSchema),
+    defaultValues: {
+      roomType: "MEETING",
+      capacity: 1
+    }
+  });
 
   const { data, isLoading } = useRooms(currentPage, pageSize);
   const createRoomMutation = useCreateRoom();
@@ -36,62 +42,42 @@ export default function Rooms() {
   const rooms = data?.content ?? [];
   const totalPages = data?.totalPages ?? 0;
   const totalElements = data?.totalElements ?? 0;
-  const saving = createRoomMutation.isPending || updateRoomMutation.isPending;
 
   function openAddModal() {
     setEditingRoom(null);
-    setForm(emptyForm);
+    reset();
     setModalOpen(true);
   }
 
   function openEditModal(room: Room) {
     setEditingRoom(room);
-    setForm({
-      roomName: room.roomName,
-      roomType: room.roomType,
-      capacity: room.capacity,
-      location: room.location,
-    });
+    setValue("roomName", room.roomName);
+    setValue("roomType", room.roomType);
+    setValue("capacity", room.capacity);
+    setValue("location", room.location);
     setModalOpen(true);
   }
 
   function closeModal() {
     setModalOpen(false);
     setEditingRoom(null);
-    setForm(emptyForm);
-    setFormErrors({});
+    reset();
   }
 
-  async function handleSave() {
-    const { success, errors } = validateRoomForm(form);
-    setFormErrors(errors);
-    if (!success) {
-      return;
+  function handleSave(data: RoomFormData) {
+    if (editingRoom) {
+      updateRoomMutation.mutate({ id: editingRoom.id, data });
+    } else {
+      createRoomMutation.mutate(data);
     }
-    try {
-      if (editingRoom) {
-        await updateRoomMutation.mutateAsync({ id: editingRoom.id, data: form });
-        toast.success("Room updated successfully");
-      } else {
-        await createRoomMutation.mutateAsync(form);
-        toast.success("Room created successfully");
-      }
-      closeModal();
-      setCurrentPage(0);
-    } catch (err) {
-      toast.error(err as string);
-    }
+    closeModal();
+    setCurrentPage(0);
   }
 
-  async function handleDisable(room: Room) {
+  function handleDisable(room: Room) {
     if (!window.confirm(`Disable ${room.roomName}?`)) return;
-    try {
-      await disableRoomMutation.mutateAsync(room.id);
-      toast.success("Room disabled successfully");
-      setCurrentPage(0);
-    } catch (err) {
-      toast.error(err as string);
-    }
+    disableRoomMutation.mutate(room.id);
+    setCurrentPage(0);
   }
 
   return (
@@ -219,24 +205,21 @@ export default function Rooms() {
               </button>
             </div>
 
-            <div className="px-6 py-4 space-y-4">
+            <form id="room-form" onSubmit={handleSubmit(handleSave)} className="px-6 py-4 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Room Name
                 </label>
                 <input
                   type="text"
-                  value={form.roomName}
-                  onChange={(e) =>
-                    setForm({ ...form, roomName: e.target.value })
-                  }
+                  {...register("roomName")}
                   className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    formErrors.roomName ? "border-red-400" : "border-gray-300"
+                    errors.roomName ? "border-red-400" : "border-gray-300"
                   }`}
                   placeholder="e.g. Conference Room A"
                 />
-                {formErrors.roomName && (
-                  <p className="text-xs text-red-500 mt-1">{formErrors.roomName}</p>
+                {errors.roomName && (
+                  <p className="text-red-500 text-sm mt-1">{errors.roomName.message}</p>
                 )}
               </div>
 
@@ -245,19 +228,16 @@ export default function Rooms() {
                   Room Type
                 </label>
                 <select
-                  value={form.roomType}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      roomType: e.target.value as CreateRoomRequest["roomType"],
-                    })
-                  }
+                  {...register("roomType")}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="MEETING">MEETING</option>
                   <option value="TRAINING">TRAINING</option>
                   <option value="POD">POD</option>
                 </select>
+                {errors.roomType && (
+                  <p className="text-red-500 text-sm mt-1">{errors.roomType.message}</p>
+                )}
               </div>
 
               <div>
@@ -267,16 +247,13 @@ export default function Rooms() {
                 <input
                   type="number"
                   min={1}
-                  value={form.capacity}
-                  onChange={(e) =>
-                    setForm({ ...form, capacity: Number(e.target.value) })
-                  }
+                  {...register("capacity", { valueAsNumber: true })}
                   className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    formErrors.capacity ? "border-red-400" : "border-gray-300"
+                    errors.capacity ? "border-red-400" : "border-gray-300"
                   }`}
                 />
-                {formErrors.capacity && (
-                  <p className="text-xs text-red-500 mt-1">{formErrors.capacity}</p>
+                {errors.capacity && (
+                  <p className="text-red-500 text-sm mt-1">{errors.capacity.message}</p>
                 )}
               </div>
 
@@ -286,35 +263,34 @@ export default function Rooms() {
                 </label>
                 <input
                   type="text"
-                  value={form.location}
-                  onChange={(e) =>
-                    setForm({ ...form, location: e.target.value })
-                  }
+                  {...register("location")}
                   className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    formErrors.location ? "border-red-400" : "border-gray-300"
+                    errors.location ? "border-red-400" : "border-gray-300"
                   }`}
                   placeholder="e.g. Floor 3"
                 />
-                {formErrors.location && (
-                  <p className="text-xs text-red-500 mt-1">{formErrors.location}</p>
+                {errors.location && (
+                  <p className="text-red-500 text-sm mt-1">{errors.location.message}</p>
                 )}
               </div>
-            </div>
+            </form>
 
             <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200">
               <button
+                type="button"
                 onClick={closeModal}
                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
               >
                 Cancel
               </button>
               <button
-                onClick={handleSave}
-                disabled={saving}
+                type="submit"
+                form="room-form"
+                disabled={isSubmitting}
                 className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
               >
-                {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                Save
+                {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                {isSubmitting ? "Saving..." : "Save"}
               </button>
             </div>
           </div>
