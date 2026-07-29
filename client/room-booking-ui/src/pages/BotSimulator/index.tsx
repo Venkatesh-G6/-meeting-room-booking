@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Bot, Send, Loader2, Bug } from "lucide-react";
 import { Layout } from "../../components/layout";
-import apiClient from "../../api/client";
+import axios from "axios";
 
 interface ChatMessage {
   id: string;
@@ -142,12 +142,16 @@ export default function BotSimulator() {
     setLoading(true);
 
     try {
-      const apiResponse = (await apiClient.post("/messages/simulate", {
-        text,
-        userEmail: "dev@company.com",
-      })) as unknown as ApiResponse<SimulateResponse>;
+      const apiResponse = (await axios.post(
+        "http://localhost:8080/api/messages/simulate",
+        {
+          text,
+          userEmail: "dev@company.com",
+        },
+        { headers: { "Content-Type": "application/json" } }
+      )) as unknown as { data: ApiResponse<SimulateResponse> };
 
-      const response = apiResponse.data;
+      const response = apiResponse.data.data;
 
       const botMsg: ChatMessage = {
         id: `bot-${Date.now()}`,
