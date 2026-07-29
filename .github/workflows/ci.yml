@@ -2,7 +2,7 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, Azure]
   pull_request:
     branches: [main]
 
@@ -86,6 +86,10 @@ jobs:
       - name: ESLint check
         working-directory: ./client/room-booking-ui
         run: npm run lint
+
+      - name: Run unit tests
+        working-directory: ./client/room-booking-ui
+        run: npx vitest run
 
       - name: Build
         working-directory: ./client/room-booking-ui

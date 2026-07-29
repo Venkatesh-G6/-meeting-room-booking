@@ -7,9 +7,9 @@ import Login from '../../pages/Login'
 
 const createWrapper = () => {
   return ({ children }: { children: ReactNode }) => (
-    <AuthProvider>
-      <MemoryRouter>{children}</MemoryRouter>
-    </AuthProvider>
+    <MemoryRouter>
+      <AuthProvider>{children}</AuthProvider>
+    </MemoryRouter>
   )
 }
 

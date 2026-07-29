@@ -1,6 +1,14 @@
 # Use this profile only for local dev without
 # Entra ID. Never use in staging or production.
 spring:
+  datasource:
+    url: jdbc:h2:mem:roombooking_db;DB_CLOSE_DELAY=-1;MODE=MySQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: update
   cloud:
     azure:
       active-directory:

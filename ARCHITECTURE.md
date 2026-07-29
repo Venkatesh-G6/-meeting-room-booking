@@ -48,4 +48,19 @@ Migrations:
 ⏳ Microsoft Entra ID (needs Azure)
 ⏳ Teams Bot (needs Azure Bot Service)
 ⏳ Graph Calendar Sync (needs Graph perms)
-⏳ Unit Tests (planned)
+
+### Testing
+✅ Frontend: 82 tests (Vitest + React Testing Library)
+   - Components: Badge, Pagination, StatCard, ErrorBoundary, ProtectedRoute
+   - Pages: Dashboard, Login, Availability, Rooms, Bookings, AuditLogs
+   - Context: AuthContext
+   - Hooks: useRooms, useAvailability
+   - Utils: dateUtils, validationSchemas
+   - Smoke test
+✅ Backend: 23+ tests (JUnit 5 + Mockito + MockMvc)
+   - Controllers: RoomController, BookingController, AuditLogController, BotController, BotSimulatorController
+   - Services: RoomServiceImpl, BookingServiceImpl, AuditService
+   - Repositories: RoomRepository, BookingRepository
+   - Bot: BotCommandParser, AdaptiveCardBuilder, MultiTurnDialogHandler
+   - Graph: GraphServiceStub
+✅ CI/CD: GitHub Actions runs frontend + backend tests on push

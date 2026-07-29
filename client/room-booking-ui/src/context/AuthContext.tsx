@@ -1,4 +1,5 @@
 import { createContext, useEffect, useState, type ReactNode } from "react";
+import { useNavigate } from "react-router-dom";
 
 export interface AuthUser {
   email: string;
@@ -27,6 +28,7 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const stored = sessionStorage.getItem("roombooking_user");
@@ -48,7 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     setUser(null);
     sessionStorage.removeItem("roombooking_user");
-    window.location.href = "/login";
+    navigate("/login", { replace: true });
   };
 
   const isAuthenticated = !!user;

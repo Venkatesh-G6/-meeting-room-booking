@@ -8,11 +8,13 @@ import AuditLogs from "./pages/AuditLogs";
 import BotSimulator from "./pages/BotSimulator";
 import Login from "./pages/Login";
 import { ErrorBoundary, ProtectedRoute } from "./components/common";
+import { AuthProvider } from "./context/AuthContext";
 
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
+      <AuthProvider>
+        <Routes>
         <Route path="/login" element={<Login />} />
         <Route
           path="/*"
@@ -32,6 +34,7 @@ function App() {
           }
         />
       </Routes>
+      </AuthProvider>
       <Toaster position="top-right" />
     </BrowserRouter>
   );
