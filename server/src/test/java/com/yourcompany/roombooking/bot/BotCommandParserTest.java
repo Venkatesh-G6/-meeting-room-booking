@@ -30,9 +30,9 @@ class BotCommandParserTest {
     }
 
     @Test
-    @DisplayName("CHECK_AVAILABILITY - with 'check' keyword and am/pm times")
+    @DisplayName("CHECK_AVAILABILITY - with 'check' + 'room' keyword and am/pm times")
     void parse_checkKeywordWithAmPm_returnsCheckAvailabilityWithTimes() {
-        ParsedCommand cmd = ParsedCommand.parse("check 10am to 2pm");
+        ParsedCommand cmd = ParsedCommand.parse("check room 10am to 2pm");
         assertEquals(BotCommand.CHECK_AVAILABILITY, cmd.getCommand());
         assertEquals(LocalTime.of(10, 0), cmd.getStartTime());
         assertEquals(LocalTime.of(14, 0), cmd.getEndTime());
@@ -120,17 +120,31 @@ class BotCommandParserTest {
     }
 
     @Test
-    @DisplayName("HELP - with 'hi' keyword")
-    void parse_hiKeyword_returnsHelp() {
+    @DisplayName("GREETING - with 'hi' keyword")
+    void parse_hiKeyword_returnsGreeting() {
         ParsedCommand cmd = ParsedCommand.parse("hi");
-        assertEquals(BotCommand.HELP, cmd.getCommand());
+        assertEquals(BotCommand.GREETING, cmd.getCommand());
     }
 
     @Test
-    @DisplayName("HELP - with 'hello' keyword")
-    void parse_helloKeyword_returnsHelp() {
+    @DisplayName("GREETING - with 'hello' keyword")
+    void parse_helloKeyword_returnsGreeting() {
         ParsedCommand cmd = ParsedCommand.parse("hello");
-        assertEquals(BotCommand.HELP, cmd.getCommand());
+        assertEquals(BotCommand.GREETING, cmd.getCommand());
+    }
+
+    @Test
+    @DisplayName("GREETING - with 'hey' keyword")
+    void parse_heyKeyword_returnsGreeting() {
+        ParsedCommand cmd = ParsedCommand.parse("hey");
+        assertEquals(BotCommand.GREETING, cmd.getCommand());
+    }
+
+    @Test
+    @DisplayName("GREETING - with 'good morning' keyword")
+    void parse_goodMorningKeyword_returnsGreeting() {
+        ParsedCommand cmd = ParsedCommand.parse("good morning");
+        assertEquals(BotCommand.GREETING, cmd.getCommand());
     }
 
     @Test
@@ -152,6 +166,105 @@ class BotCommandParserTest {
     void parse_nullText_returnsUnknown() {
         ParsedCommand cmd = ParsedCommand.parse(null);
         assertEquals(BotCommand.UNKNOWN, cmd.getCommand());
+    }
+
+    @Test
+    @DisplayName("RESET - with 'reset' keyword")
+    void parse_resetKeyword_returnsReset() {
+        ParsedCommand cmd = ParsedCommand.parse("reset");
+        assertEquals(BotCommand.RESET, cmd.getCommand());
+    }
+
+    @Test
+    @DisplayName("RESET - with 'start over' keyword")
+    void parse_startOverKeyword_returnsReset() {
+        ParsedCommand cmd = ParsedCommand.parse("start over");
+        assertEquals(BotCommand.RESET, cmd.getCommand());
+    }
+
+    @Test
+    @DisplayName("RESET - with 'cancel' keyword (no booking id)")
+    void parse_cancelAlone_returnsReset() {
+        ParsedCommand cmd = ParsedCommand.parse("cancel");
+        assertEquals(BotCommand.RESET, cmd.getCommand());
+    }
+
+    @Test
+    @DisplayName("LIST_ROOMS - with 'list rooms' keyword")
+    void parse_listRoomsKeyword_returnsListRooms() {
+        ParsedCommand cmd = ParsedCommand.parse("list rooms");
+        assertEquals(BotCommand.LIST_ROOMS, cmd.getCommand());
+    }
+
+    @Test
+    @DisplayName("LIST_ROOMS - with 'show all rooms' keyword")
+    void parse_showAllRoomsKeyword_returnsListRooms() {
+        ParsedCommand cmd = ParsedCommand.parse("show all rooms");
+        assertEquals(BotCommand.LIST_ROOMS, cmd.getCommand());
+    }
+
+    @Test
+    @DisplayName("CHECK_AVAILABILITY - with day-of-week 'monday'")
+    void parse_checkAvailabilityWithDayOfWeek_returnsCheckAvailabilityWithDate() {
+        ParsedCommand cmd = ParsedCommand.parse("check availability on monday from 10am to 11am");
+        assertEquals(BotCommand.CHECK_AVAILABILITY, cmd.getCommand());
+        assertNotNull(cmd.getDate());
+        assertEquals(LocalTime.of(10, 0), cmd.getStartTime());
+        assertEquals(LocalTime.of(11, 0), cmd.getEndTime());
+    }
+
+    @Test
+    @DisplayName("CHECK_AVAILABILITY - with 'tmrw' abbreviation")
+    void parse_tmrwAbbreviation_returnsTomorrowDate() {
+        ParsedCommand cmd = ParsedCommand.parse("check availability tmrw from 9am to 10am");
+        assertEquals(BotCommand.CHECK_AVAILABILITY, cmd.getCommand());
+        assertEquals(LocalDate.now().plusDays(1), cmd.getDate());
+    }
+
+    @Test
+    @DisplayName("BOOK_ROOM - with 'schedule' keyword")
+    void parse_scheduleKeyword_returnsBookRoom() {
+        ParsedCommand cmd = ParsedCommand.parse("schedule Boardroom tomorrow from 2pm to 3pm");
+        assertEquals(BotCommand.BOOK_ROOM, cmd.getCommand());
+        assertEquals(LocalDate.now().plusDays(1), cmd.getDate());
+    }
+
+    @Test
+    @DisplayName("BOOK_ROOM - with DD-MM-YYYY date format")
+    void parse_bookRoomWithDashDate_returnsBookRoomWithDate() {
+        ParsedCommand cmd = ParsedCommand.parse("book Boardroom on 25-12-2025 from 10am to 11am");
+        assertEquals(BotCommand.BOOK_ROOM, cmd.getCommand());
+        assertEquals(LocalDate.of(2025, 12, 25), cmd.getDate());
+    }
+
+    @Test
+    @DisplayName("BOOK_ROOM - with DD.MM.YYYY date format")
+    void parse_bookRoomWithDotDate_returnsBookRoomWithDate() {
+        ParsedCommand cmd = ParsedCommand.parse("book Boardroom on 25.12.2025 from 10am to 11am");
+        assertEquals(BotCommand.BOOK_ROOM, cmd.getCommand());
+        assertEquals(LocalDate.of(2025, 12, 25), cmd.getDate());
+    }
+
+    @Test
+    @DisplayName("CANCEL_BOOKING - with '#5' format")
+    void parse_cancelWithHashId_returnsCancelBookingWithId() {
+        ParsedCommand cmd = ParsedCommand.parse("cancel #5");
+        assertEquals(BotCommand.CANCEL_BOOKING, cmd.getCommand());
+        assertEquals(5L, cmd.getBookingId());
+    }
+
+    @Test
+    @DisplayName("HELP - with '?' keyword")
+    void parse_questionMarkKeyword_returnsHelp() {
+        ParsedCommand cmd = ParsedCommand.parse("?");
+        assertEquals(BotCommand.HELP, cmd.getCommand());
+    }
+
+    @Test
+    @DisplayName("HELP - with 'commands' keyword")
+    void parse_commandsKeyword_returnsHelp() {
+        ParsedCommand cmd = ParsedCommand.parse("commands");
+        assertEquals(BotCommand.HELP, cmd.getCommand());
     }
 
     @Test

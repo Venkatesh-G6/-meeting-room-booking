@@ -29,7 +29,9 @@ interface ApiResponse<T> {
 const quickCommands = [
   { label: "Check Availability", text: "check availability today from 10am to 12pm" },
   { label: "My Bookings", text: "my bookings" },
+  { label: "List Rooms", text: "list rooms" },
   { label: "Help", text: "help" },
+  { label: "Reset", text: "reset" },
   { label: "Book Room", text: "book Conference Room A today from 10am to 11am" },
 ];
 
@@ -168,10 +170,18 @@ export default function BotSimulator() {
         request: { text, userEmail: "dev@company.com" },
       });
     } catch (err) {
+      let errorText = "Failed to connect to the bot server. Make sure the backend is running with SPRING_PROFILES_ACTIVE=dev.";
+      if (axios.isAxiosError(err)) {
+        if (err.code === "ECONNREFUSED" || err.code === "ERR_NETWORK") {
+          errorText = "Cannot connect to backend at http://localhost:8080. Is the server running?";
+        } else if (err.response) {
+          errorText = `Server error (${err.response.status}): ${err.response.statusText}`;
+        }
+      }
       const errorMsg: ChatMessage = {
         id: `error-${Date.now()}`,
         sender: "bot",
-        text: `Error: ${String(err)}`,
+        text: `\u274C ${errorText}`,
         timestamp: formatTimestamp(),
       };
       setMessages((prev) => [...prev, errorMsg]);

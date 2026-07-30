@@ -5,6 +5,9 @@ public enum BotCommand {
     BOOK_ROOM,
     MY_BOOKINGS,
     CANCEL_BOOKING,
+    LIST_ROOMS,
+    RESET,
     HELP,
+    GREETING,
     UNKNOWN
 }
