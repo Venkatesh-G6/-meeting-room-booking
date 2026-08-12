@@ -282,7 +282,7 @@ function ScheduleSection({
     setBookingLoading(true)
     setError('')
     try {
-      await createBooking({
+      await createSchedule({
         roomId: room.id,
         employeeId: employee.id,
         title,
@@ -552,8 +552,8 @@ function TodaySchedulesView({
     setRefreshing(true)
     try {
       const [todayRes, recentRes] = await Promise.all([
-        getTodayBookings(),
-        getRecentBookings(5),
+        getTodaySchedules(),
+        getRecentSchedules(5),
       ])
       setTodayData(todayRes.data)
       setRecentData(recentRes.data)
@@ -572,7 +572,7 @@ function TodaySchedulesView({
   const confirmCancel = useCallback(async () => {
     if (!confirming) return
     try {
-      await cancelBooking(confirming.id, confirming.employeeId)
+      await cancelSchedule(confirming.id, confirming.employeeId)
       toast.success('Schedule cancelled successfully')
       await fetchAll()
     } catch (err: any) {
