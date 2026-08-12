@@ -353,7 +353,7 @@ function ScheduleSection({
             <input
               type="text"
               readOnly
-              value={`${room.roomName} (Capacity: ${room.capacity})`}
+              value={room.roomName}
               className={READONLY_CLASS}
             />
           </div>
@@ -679,7 +679,6 @@ function TodaySchedulesView({
                         <p className="text-base font-bold text-gray-800">
                           {room.roomName}
                         </p>
-                        <p className="text-xs text-gray-500">{room.location}</p>
                       </div>
                     </div>
                     {room.fullyAvailable ? (
