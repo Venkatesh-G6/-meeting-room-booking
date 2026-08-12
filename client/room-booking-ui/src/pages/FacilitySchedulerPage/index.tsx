@@ -272,7 +272,7 @@ function ScheduleSection({
       const res = await checkAvailability(room.id, date, startTime, endTime)
       setAvailability(res.data)
     } catch (err: any) {
-      setError(err)
+      setError(err instanceof Error ? err.message : String(err))
     } finally {
       setChecking(false)
     }
@@ -298,8 +298,8 @@ function ScheduleSection({
       setAvailability(null)
       onBooked()
     } catch (err: any) {
-      setError(err)
-      toast.error(err)
+      setError(err instanceof Error ? err.message : String(err))
+      toast.error(err instanceof Error ? err.message : String(err))
     } finally {
       setBookingLoading(false)
     }
@@ -318,7 +318,7 @@ function ScheduleSection({
       const res = await checkAvailability(room.id, date, newStart, newEnd)
       setAvailability(res.data)
     } catch (err: any) {
-      setError(err)
+      setError(err instanceof Error ? err.message : String(err))
     } finally {
       setChecking(false)
     }
@@ -576,7 +576,7 @@ function TodaySchedulesView({
       toast.success('Schedule cancelled successfully')
       await fetchAll()
     } catch (err: any) {
-      toast.error(err)
+      toast.error(err instanceof Error ? err.message : String(err))
     } finally {
       setConfirming(null)
     }
