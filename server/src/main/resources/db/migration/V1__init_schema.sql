@@ -1,34 +1,51 @@
+CREATE TABLE IF NOT EXISTS employees (
+  id           BIGINT AUTO_INCREMENT 
+               PRIMARY KEY,
+  name         VARCHAR(100) NOT NULL,
+  email        VARCHAR(200) NOT NULL UNIQUE,
+  department   VARCHAR(100),
+  active       BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at   DATETIME NOT NULL 
+               DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS rooms (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    room_name VARCHAR(255) NOT NULL,
-    room_type ENUM('MEETING', 'TRAINING', 'POD') NOT NULL,
-    capacity INT NOT NULL,
-    location VARCHAR(255),
-    active BOOLEAN DEFAULT TRUE,
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  id           BIGINT AUTO_INCREMENT 
+               PRIMARY KEY,
+  room_name    VARCHAR(100) NOT NULL,
+  capacity     INT NOT NULL,
+  location     VARCHAR(200),
+  status       ENUM('AVAILABLE','NA') 
+               NOT NULL DEFAULT 'AVAILABLE',
+  created_at   DATETIME NOT NULL 
+               DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS bookings (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    room_id BIGINT NOT NULL,
-    booked_by VARCHAR(200) NOT NULL,
-    title VARCHAR(255) NOT NULL,
-    attendee_count INT DEFAULT 1,
-    start_time DATETIME NOT NULL,
-    end_time DATETIME NOT NULL,
-    status ENUM('CONFIRMED', 'CANCELLED') DEFAULT 'CONFIRMED',
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_bookings_room FOREIGN KEY (room_id) REFERENCES rooms(id)
+  id           BIGINT AUTO_INCREMENT 
+               PRIMARY KEY,
+  room_id      BIGINT NOT NULL,
+  employee_id  BIGINT NOT NULL,
+  title        VARCHAR(200),
+  start_time   DATETIME NOT NULL,
+  end_time     DATETIME NOT NULL,
+  status       ENUM('CONFIRMED','CANCELLED') 
+               NOT NULL DEFAULT 'CONFIRMED',
+  created_at   DATETIME NOT NULL 
+               DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_booking_room 
+    FOREIGN KEY (room_id) 
+    REFERENCES rooms(id),
+  CONSTRAINT fk_booking_employee 
+    FOREIGN KEY (employee_id) 
+    REFERENCES employees(id)
 );
 
-CREATE TABLE IF NOT EXISTS audit_logs (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    actor_email VARCHAR(255) NOT NULL,
-    action VARCHAR(100) NOT NULL,
-    entity_type VARCHAR(100) NOT NULL,
-    entity_id VARCHAR(100) NOT NULL,
-    meta_json TEXT,
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
+CREATE INDEX idx_bookings_room_date
+  ON bookings(room_id, start_time);
+
+CREATE INDEX idx_bookings_employee
+  ON bookings(employee_id);
+
+CREATE INDEX idx_bookings_start_time
+  ON bookings(start_time);

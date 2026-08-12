@@ -2,37 +2,49 @@ import apiClient from "./client";
 import type {
   ApiResponse,
   Booking,
-  CreateBookingRequest,
-  PagedResponse,
+  AvailabilityResponse,
+  TodayBookingsResponse,
 } from "../types";
 
-export function getAllBookings(
-  page: number,
-  size: number
-): Promise<ApiResponse<PagedResponse<Booking>>> {
-  return apiClient.get("/bookings", { params: { page, size } });
+export interface CreateBookingPayload {
+  roomId: number;
+  employeeId: number;
+  title: string;
+  date: string;
+  startTime: string;
+  endTime: string;
 }
 
-export function getBookingById(id: string): Promise<ApiResponse<Booking>> {
-  return apiClient.get(`/bookings/${id}`);
+export function checkAvailability(
+  roomId: number,
+  date: string,
+  startTime: string,
+  endTime: string
+): Promise<ApiResponse<AvailabilityResponse>> {
+  return apiClient.get("/bookings/availability", {
+    params: { roomId, date, startTime, endTime },
+  });
 }
 
 export function createBooking(
-  data: CreateBookingRequest
+  data: CreateBookingPayload
 ): Promise<ApiResponse<Booking>> {
   return apiClient.post("/bookings", data);
 }
 
-export function cancelBooking(
-  id: string
-): Promise<ApiResponse<void>> {
-  return apiClient.delete(`/bookings/${id}`);
+export function getTodayBookings(): Promise<ApiResponse<TodayBookingsResponse[]>> {
+  return apiClient.get("/bookings/today");
 }
 
-export function getMyBookings(
-  bookedBy: string
+export function getRecentBookings(
+  days: number
 ): Promise<ApiResponse<Booking[]>> {
-  return apiClient.get("/bookings/my", {
-    params: { bookedBy },
-  });
+  return apiClient.get("/bookings/recent", { params: { days } });
+}
+
+export function cancelBooking(
+  id: number,
+  employeeId: number
+): Promise<ApiResponse<void>> {
+  return apiClient.delete(`/bookings/${id}`, { params: { employeeId } });
 }

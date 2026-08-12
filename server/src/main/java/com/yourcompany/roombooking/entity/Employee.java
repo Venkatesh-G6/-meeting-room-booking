@@ -1,6 +1,5 @@
 package com.yourcompany.roombooking.entity;
 
-import com.yourcompany.roombooking.enums.RoomStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,29 +11,28 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "rooms")
+@Table(name = "employees")
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @EntityListeners(AuditingEntityListener.class)
-public class Room {
+public class Employee {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "room_name", nullable = false)
-    private String roomName;
+    @Column(nullable = false)
+    private String name;
+
+    @Column(nullable = false, unique = true)
+    private String email;
+
+    private String department;
 
     @Column(nullable = false)
-    private Integer capacity;
-
-    private String location;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private RoomStatus status = RoomStatus.AVAILABLE;
+    private Boolean active = true;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)

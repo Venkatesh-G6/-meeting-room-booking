@@ -1,29 +1,22 @@
-import axios from "axios";
-import { getCachedToken } from "../context/auth-utils";
+import axios from 'axios'
 
-const apiClient = axios.create({
-  baseURL: "http://localhost:8080/api/v1",
+const api = axios.create({
+  baseURL: 'http://localhost:8080/api',
   timeout: 10000,
   headers: {
-    "Content-Type": "application/json",
-  },
-});
-
-apiClient.interceptors.request.use((config) => {
-  const token = getCachedToken();
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+    'Content-Type': 'application/json'
   }
-  return config;
-});
+})
 
-apiClient.interceptors.response.use(
-  (response) => response.data,
-  (error) => {
-    const message =
-      error.response?.data?.message || error.message || "Something went wrong";
-    return Promise.reject(message);
+api.interceptors.response.use(
+  response => response.data,
+  error => {
+    const message = 
+      error.response?.data?.message 
+      || error.message 
+      || 'Something went wrong'
+    return Promise.reject(message)
   }
-);
+)
 
-export default apiClient;
+export default api

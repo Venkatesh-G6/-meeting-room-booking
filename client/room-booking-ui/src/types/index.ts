@@ -1,21 +1,26 @@
+export interface Employee {
+  id: number
+  name: string
+  email: string
+  department: string
+}
+
 export interface Room {
-  id: string
+  id: number
   roomName: string
-  roomType: 'MEETING' | 'TRAINING' | 'POD'
   capacity: number
   location: string
-  active: boolean
-  createdAt: string
-  updatedAt: string
+  status: 'AVAILABLE' | 'NA'
 }
 
 export interface Booking {
-  id: string
-  roomId: string
+  id: number
+  roomId: number
   roomName: string
-  bookedBy: string
+  employeeId: number
+  employeeName: string
+  employeeEmail: string
   title: string
-  attendeeCount: number
   startTime: string
   endTime: string
   status: 'CONFIRMED' | 'CANCELLED'
@@ -23,11 +28,24 @@ export interface Booking {
 }
 
 export interface AvailabilityResponse {
+  available: boolean
+  roomId: number
+  roomName: string
   date: string
-  startTime: string
-  endTime: string
-  availableRooms: Room[]
-  totalAvailable: number
+  requestedStart: string
+  requestedEnd: string
+  conflictingBooking: Booking | null
+  suggestedStartTime: string | null
+  suggestedEndTime: string | null
+  message: string
+}
+
+export interface TodayBookingsResponse {
+  roomId: number
+  roomName: string
+  location: string
+  bookings: Booking[]
+  fullyAvailable: boolean
 }
 
 export interface ApiResponse<T> {
@@ -35,38 +53,4 @@ export interface ApiResponse<T> {
   message: string
   data: T
   timestamp: string
-}
-
-export interface PagedResponse<T> {
-  content: T[]
-  pageNumber: number
-  pageSize: number
-  totalElements: number
-  totalPages: number
-  last: boolean
-}
-
-export interface CreateRoomRequest {
-  roomName: string
-  roomType: 'MEETING' | 'TRAINING' | 'POD'
-  capacity: number
-  location?: string
-}
-
-export interface CreateBookingRequest {
-  roomId: string
-  title: string
-  attendeeCount: number
-  startTime: string
-  endTime: string
-}
-
-export interface AuditLog {
-  id: number
-  actorEmail: string
-  action: string
-  entityType: string
-  entityId: string
-  metaJson: string
-  createdAt: string
 }

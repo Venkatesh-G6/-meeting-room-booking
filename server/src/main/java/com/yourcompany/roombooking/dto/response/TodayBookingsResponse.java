@@ -1,19 +1,20 @@
 package com.yourcompany.roombooking.dto.response;
 
-import com.yourcompany.roombooking.enums.RoomStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class RoomResponse {
-    private Long id;
+public class TodayBookingsResponse {
+    private Long roomId;
     private String roomName;
-    private Integer capacity;
     private String location;
-    private RoomStatus status;
+    private List<BookingResponse> bookings;
+    private Boolean fullyAvailable;
 }

@@ -1,5 +1,4 @@
-# Use this profile only for local dev without
-# Entra ID. Never use in staging or production.
+# Use this profile only for local dev.
 spring:
   datasource:
     url: jdbc:h2:mem:roombooking_db;DB_CLOSE_DELAY=-1;MODE=MySQL
@@ -8,7 +7,7 @@ spring:
     password:
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: none
   cloud:
     azure:
       active-directory:
@@ -23,8 +22,3 @@ spring:
       - org.springframework.boot.autoconfigure.security.oauth2.resource.servlet.OAuth2ResourceServerAutoConfiguration
       - com.azure.spring.cloud.autoconfigure.implementation.activedirectory.AzureActiveDirectoryAutoConfiguration
       - com.azure.spring.cloud.autoconfigure.implementation.aad.security.AzureActiveDirectorySecurityAutoConfiguration
-
-bot:
-  app-id: dev-bot-id
-  app-password: dev-bot-password
-  name: RoomBookingBot (Dev)

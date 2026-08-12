@@ -1,258 +1,255 @@
 package com.yourcompany.roombooking.service.impl;
 
-import com.yourcompany.roombooking.audit.AuditMeta;
-import com.yourcompany.roombooking.audit.AuditService;
 import com.yourcompany.roombooking.dto.request.CreateBookingRequest;
+import com.yourcompany.roombooking.dto.response.AvailabilityResponse;
 import com.yourcompany.roombooking.dto.response.BookingResponse;
-import com.yourcompany.roombooking.dto.response.PagedResponse;
+import com.yourcompany.roombooking.dto.response.EmployeeResponse;
+import com.yourcompany.roombooking.dto.response.RoomResponse;
+import com.yourcompany.roombooking.dto.response.TodayBookingsResponse;
 import com.yourcompany.roombooking.entity.Booking;
+import com.yourcompany.roombooking.entity.Employee;
 import com.yourcompany.roombooking.entity.Room;
-import com.yourcompany.roombooking.enums.AuditAction;
 import com.yourcompany.roombooking.enums.BookingStatus;
+import com.yourcompany.roombooking.enums.RoomStatus;
 import com.yourcompany.roombooking.exception.BookingException;
 import com.yourcompany.roombooking.exception.ResourceNotFoundException;
-import com.yourcompany.roombooking.graph.GraphService;
 import com.yourcompany.roombooking.repository.BookingRepository;
+import com.yourcompany.roombooking.repository.EmployeeRepository;
 import com.yourcompany.roombooking.repository.RoomRepository;
 import com.yourcompany.roombooking.service.BookingService;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.UUID;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
-@Slf4j
 @Service
+@RequiredArgsConstructor
 public class BookingServiceImpl implements BookingService {
 
     private final BookingRepository bookingRepository;
+    private final EmployeeRepository employeeRepository;
     private final RoomRepository roomRepository;
-    private final AuditService auditService;
-    private final GraphService graphService;
 
-    public BookingServiceImpl(BookingRepository bookingRepository, RoomRepository roomRepository, AuditService auditService, GraphService graphService) {
-        this.bookingRepository = bookingRepository;
-        this.roomRepository = roomRepository;
-        this.auditService = auditService;
-        this.graphService = graphService;
+    @Override
+    public List<EmployeeResponse> getAllEmployees() {
+        return employeeRepository.findAllByActiveTrue().stream()
+                .map(this::mapToEmployeeResponse)
+                .toList();
     }
 
     @Override
-    @Transactional
-    // Pessimistic lock ensures no two transactions can book the same room at the same time
-    public BookingResponse createBooking(CreateBookingRequest request, String bookedBy) {
+    public List<RoomResponse> getAllRooms() {
+        return roomRepository.findAllByStatus(RoomStatus.AVAILABLE).stream()
+                .map(this::mapToRoomResponse)
+                .toList();
+    }
+
+    @Override
+    public AvailabilityResponse checkAvailability(Long roomId,
+                                                   LocalDate date,
+                                                   LocalTime startTime,
+                                                   LocalTime endTime) {
+        if (!startTime.isBefore(endTime)) {
+            throw new BookingException("Start time must be before end time");
+        }
+
+        if (date.isBefore(LocalDate.now())) {
+            throw new BookingException("Cannot book for a past date");
+        }
+
+        LocalDateTime startDateTime = LocalDateTime.of(date, startTime);
+        LocalDateTime endDateTime = LocalDateTime.of(date, endTime);
+
+        List<Booking> overlapping = bookingRepository.findOverlappingBookings(
+                roomId, BookingStatus.CONFIRMED, startDateTime, endDateTime);
+
+        if (overlapping.isEmpty()) {
+            return AvailabilityResponse.builder()
+                    .available(true)
+                    .roomId(roomId)
+                    .date(date)
+                    .requestedStart(startTime)
+                    .requestedEnd(endTime)
+                    .message("Room is available")
+                    .build();
+        }
+
+        Booking conflicting = overlapping.get(0);
+        LocalDateTime endOfDay = LocalDateTime.of(date, LocalTime.MAX);
+        Optional<Booking> nextSlot = bookingRepository.findNextAvailableSlot(
+                roomId, BookingStatus.CONFIRMED, conflicting.getEndTime(), endOfDay);
+
+        LocalTime suggestedStart = null;
+        LocalTime suggestedEnd = null;
+
+        if (nextSlot.isPresent()) {
+            suggestedStart = conflicting.getEndTime().toLocalTime();
+            long durationMinutes = Duration.between(startTime, endTime).toMinutes();
+            suggestedEnd = suggestedStart.plusMinutes(durationMinutes);
+        }
+
+        return AvailabilityResponse.builder()
+                .available(false)
+                .roomId(roomId)
+                .roomName(conflicting.getRoom().getRoomName())
+                .date(date)
+                .requestedStart(startTime)
+                .requestedEnd(endTime)
+                .conflictingBooking(mapToBookingResponse(conflicting))
+                .suggestedStartTime(suggestedStart)
+                .suggestedEndTime(suggestedEnd)
+                .message("Room is booked from "
+                        + conflicting.getStartTime().toLocalTime()
+                        + " to "
+                        + conflicting.getEndTime().toLocalTime())
+                .build();
+    }
+
+    @Override
+    public BookingResponse createBooking(CreateBookingRequest request) {
         Room room = roomRepository.findById(request.getRoomId())
-                .orElseThrow(() -> new ResourceNotFoundException("Room not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Room not found with id: " + request.getRoomId()));
 
-        if (!room.getActive()) {
-            throw new BookingException("Room is not available for booking");
+        Employee employee = employeeRepository.findById(request.getEmployeeId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Employee not found with id: " + request.getEmployeeId()));
+
+        AvailabilityResponse availability = checkAvailability(
+                request.getRoomId(), request.getDate(),
+                request.getStartTime(), request.getEndTime());
+
+        if (!availability.getAvailable()) {
+            throw new BookingException(availability.getMessage());
         }
-
-        if (request.getAttendeeCount() == null) {
-            request.setAttendeeCount(1);
-        }
-
-        if (request.getTitle() == null || request.getTitle().isBlank()) {
-            request.setTitle("Meeting - " + room.getRoomName());
-        }
-
-        validateTimeRange(request.getStartTime(), request.getEndTime());
-        validateFutureBooking(request.getStartTime());
-        validateRoomCapacity(room, request.getAttendeeCount());
-        validateDuplicateBooking(room.getId(), bookedBy, request.getStartTime(), request.getEndTime());
-        validateRoomAvailability(room.getId(), request.getStartTime(), request.getEndTime());
 
         Booking booking = Booking.builder()
                 .room(room)
-                .bookedBy(bookedBy)
+                .employee(employee)
                 .title(request.getTitle())
-                .attendeeCount(request.getAttendeeCount())
-                .startTime(request.getStartTime())
-                .endTime(request.getEndTime())
+                .startTime(LocalDateTime.of(request.getDate(), request.getStartTime()))
+                .endTime(LocalDateTime.of(request.getDate(), request.getEndTime()))
                 .status(BookingStatus.CONFIRMED)
                 .build();
 
-        Booking savedBooking = bookingRepository.save(booking);
+        Booking saved = bookingRepository.save(booking);
+        return mapToBookingResponse(saved);
+    }
 
-        auditService.log(
-                bookedBy,
-                AuditAction.BOOKING_CREATED,
-                "BOOKING",
-                savedBooking.getId().toString(),
-                new AuditMeta.BookingMeta(
-                        savedBooking.getId(),
-                        savedBooking.getRoom().getId(),
-                        savedBooking.getRoom().getRoomName(),
-                        savedBooking.getBookedBy(),
-                        savedBooking.getStartTime().toString(),
-                        savedBooking.getEndTime().toString()
-                )
-        );
+    @Override
+    public List<TodayBookingsResponse> getTodayBookings() {
+        LocalDateTime startOfDay = LocalDateTime.of(LocalDate.now(), LocalTime.MIN);
+        LocalDateTime endOfDay = LocalDateTime.of(LocalDate.now(), LocalTime.MAX);
+        List<Booking> todayBookings = bookingRepository.findTodayBookings(startOfDay, endOfDay, BookingStatus.CONFIRMED);
 
-        BookingResponse response = mapToResponse(savedBooking);
+        Map<Long, List<Booking>> bookingsByRoom = todayBookings.stream()
+                .collect(Collectors.groupingBy(
+                        b -> b.getRoom().getId(),
+                        LinkedHashMap::new,
+                        Collectors.toList()));
 
-        try {
-            String eventId = graphService.createCalendarEvent(response);
-            if (eventId != null) {
-                savedBooking.setGraphEventId(eventId);
-                bookingRepository.save(savedBooking);
-                response.setGraphEventId(eventId);
-                log.info("Graph event created: {}", eventId);
-            }
-        } catch (Exception e) {
-            log.warn("Graph calendar sync failed for booking {}: {}", savedBooking.getId(), e.getMessage());
-            // Do NOT fail the booking
-            // Graph sync failure is non-critical
+        List<TodayBookingsResponse> result = new ArrayList<>();
+
+        for (Map.Entry<Long, List<Booking>> entry : bookingsByRoom.entrySet()) {
+            List<Booking> bookings = entry.getValue();
+            Room room = bookings.get(0).getRoom();
+            List<BookingResponse> bookingResponses = bookings.stream()
+                    .map(this::mapToBookingResponse)
+                    .toList();
+
+            result.add(TodayBookingsResponse.builder()
+                    .roomId(room.getId())
+                    .roomName(room.getRoomName())
+                    .location(room.getLocation())
+                    .bookings(bookingResponses)
+                    .fullyAvailable(false)
+                    .build());
         }
 
-        return response;
+        List<Room> availableRooms = roomRepository.findAllByStatus(RoomStatus.AVAILABLE);
+        for (Room room : availableRooms) {
+            if (!bookingsByRoom.containsKey(room.getId())) {
+                result.add(TodayBookingsResponse.builder()
+                        .roomId(room.getId())
+                        .roomName(room.getRoomName())
+                        .location(room.getLocation())
+                        .bookings(List.of())
+                        .fullyAvailable(true)
+                        .build());
+            }
+        }
+
+        result.sort((a, b) -> a.getRoomName().compareToIgnoreCase(b.getRoomName()));
+        return result;
     }
 
     @Override
-    public BookingResponse getBookingById(UUID id) {
-        Booking booking = bookingRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
-        return mapToResponse(booking);
+    public List<BookingResponse> getRecentBookings(int days) {
+        LocalDateTime fromDate = LocalDateTime.now().minusDays(days);
+        return bookingRepository.findRecentBookings(fromDate, BookingStatus.CONFIRMED).stream()
+                .map(this::mapToBookingResponse)
+                .toList();
     }
 
     @Override
-    public PagedResponse<BookingResponse> getMyBookings(String bookedBy, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
-        Page<Booking> bookingPage = bookingRepository.findAllByBookedByOrderByStartTimeDesc(bookedBy, pageable);
-        List<BookingResponse> bookingResponses = bookingPage.getContent().stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
-        return PagedResponse.of(bookingPage, bookingResponses);
-    }
+    public void cancelBooking(Long bookingId, Long employeeId) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Booking not found with id: " + bookingId));
 
-    @Override
-    public PagedResponse<BookingResponse> getAllBookings(int page, int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        Page<Booking> bookingPage = bookingRepository.findAll(pageable);
-        List<BookingResponse> bookingResponses = bookingPage.getContent().stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
-        return PagedResponse.of(bookingPage, bookingResponses);
-    }
-
-    @Override
-    public void cancelBooking(UUID id, String requestedBy) {
-        Booking booking = bookingRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+        if (!booking.getEmployee().getId().equals(employeeId)) {
+            throw new BookingException("You can only cancel your own bookings");
+        }
 
         if (booking.getStatus() == BookingStatus.CANCELLED) {
             throw new BookingException("Booking is already cancelled");
         }
 
-        if (booking.getStartTime().isBefore(LocalDateTime.now()) && booking.getStatus() == BookingStatus.CONFIRMED) {
-            throw new BookingException("Cannot cancel a booking that has already started");
-        }
-
-        if (!booking.getBookedBy().equals(requestedBy) && !isCurrentUserAdmin()) {
-            throw new BookingException("You are not authorized to cancel this booking");
-        }
-
         booking.setStatus(BookingStatus.CANCELLED);
         bookingRepository.save(booking);
-
-        auditService.log(
-                requestedBy,
-                AuditAction.BOOKING_CANCELLED,
-                "BOOKING",
-                booking.getId().toString(),
-                new AuditMeta.BookingMeta(
-                        booking.getId(),
-                        booking.getRoom().getId(),
-                        booking.getRoom().getRoomName(),
-                        booking.getBookedBy(),
-                        booking.getStartTime().toString(),
-                        booking.getEndTime().toString()
-                )
-        );
-
-        try {
-            if (booking.getGraphEventId() != null) {
-                graphService.cancelCalendarEvent(booking.getGraphEventId());
-                log.info("Graph event cancelled: {}", booking.getGraphEventId());
-            }
-        } catch (Exception e) {
-            log.warn("Graph cancellation failed for booking {}: {}", booking.getId(), e.getMessage());
-            // Do NOT fail the cancellation
-        }
     }
 
-    /*
-     * TODO Phase 9 — Teams Integration:
-     * Replace hardcoded admin check with
-     * proper role verification from JWT.
-     * SecurityContextHolder will have
-     * ROLE_ADMIN from Entra ID token.
-     */
-    private boolean isCurrentUserAdmin() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null) {
-            return false;
-        }
-        return authentication.getAuthorities().stream()
-                .anyMatch(authority -> authority.getAuthority().equals("ROLE_ADMIN"));
-    }
-
-    private void validateTimeRange(LocalDateTime startTime, LocalDateTime endTime) {
-        if (!startTime.isBefore(endTime)) {
-            throw new BookingException("Start time must be before end time");
-        }
-    }
-
-    private void validateFutureBooking(LocalDateTime startTime) {
-        if (startTime.isBefore(LocalDateTime.now().minusMinutes(5))) {
-            throw new BookingException("Booking cannot be made in the past");
-        }
-    }
-
-    private void validateRoomCapacity(Room room, Integer attendeeCount) {
-        if (attendeeCount > room.getCapacity()) {
-            throw new BookingException("Attendee count exceeds room capacity");
-        }
-    }
-
-    private void validateRoomAvailability(UUID roomId, LocalDateTime startTime, LocalDateTime endTime) {
-        List<Booking> overlappingBookings = bookingRepository.findOverlappingBookings(
-                roomId, startTime, endTime
-        );
-        if (!overlappingBookings.isEmpty()) {
-            throw new BookingException("Room is already booked for the selected time slot");
-        }
-    }
-
-    private void validateDuplicateBooking(UUID roomId, String bookedBy, LocalDateTime startTime, LocalDateTime endTime) {
-        bookingRepository.findDuplicateBooking(roomId, bookedBy, startTime, endTime)
-                .ifPresent(booking -> {
-                    throw new BookingException("You already have a booking for this room at the selected time");
-                });
-    }
-
-    private BookingResponse mapToResponse(Booking booking) {
+    private BookingResponse mapToBookingResponse(Booking booking) {
         return BookingResponse.builder()
                 .id(booking.getId())
                 .roomId(booking.getRoom().getId())
                 .roomName(booking.getRoom().getRoomName())
-                .bookedBy(booking.getBookedBy())
+                .employeeId(booking.getEmployee().getId())
+                .employeeName(booking.getEmployee().getName())
+                .employeeEmail(booking.getEmployee().getEmail())
                 .title(booking.getTitle())
-                .attendeeCount(booking.getAttendeeCount())
                 .startTime(booking.getStartTime())
                 .endTime(booking.getEndTime())
                 .status(booking.getStatus())
-                .graphEventId(booking.getGraphEventId())
                 .createdAt(booking.getCreatedAt())
+                .build();
+    }
+
+    private RoomResponse mapToRoomResponse(Room room) {
+        return RoomResponse.builder()
+                .id(room.getId())
+                .roomName(room.getRoomName())
+                .capacity(room.getCapacity())
+                .location(room.getLocation())
+                .status(room.getStatus())
+                .build();
+    }
+
+    private EmployeeResponse mapToEmployeeResponse(Employee employee) {
+        return EmployeeResponse.builder()
+                .id(employee.getId())
+                .name(employee.getName())
+                .email(employee.getEmail())
+                .department(employee.getDepartment())
                 .build();
     }
 }

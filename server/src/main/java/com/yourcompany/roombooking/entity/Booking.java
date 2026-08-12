@@ -1,47 +1,38 @@
 package com.yourcompany.roombooking.entity;
 
 import com.yourcompany.roombooking.enums.BookingStatus;
-import jakarta.persistence.*;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
-import java.util.UUID;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
 @Entity
 @Table(name = "bookings")
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @EntityListeners(AuditingEntityListener.class)
 public class Booking {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @JdbcTypeCode(SqlTypes.CHAR)
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "room_id", nullable = false, columnDefinition = "CHAR(36)")
+    @JoinColumn(name = "room_id")
     private Room room;
 
-    @Column(name = "booked_by", nullable = false)
-    private String bookedBy;
+    @ManyToOne
+    @JoinColumn(name = "employee_id")
+    private Employee employee;
 
-    @Column
     private String title;
-
-    @Column(name = "attendee_count")
-    @Builder.Default
-    private Integer attendeeCount = 1;
 
     @Column(name = "start_time", nullable = false)
     private LocalDateTime startTime;
@@ -51,17 +42,9 @@ public class Booking {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    @Builder.Default
     private BookingStatus status = BookingStatus.CONFIRMED;
 
-    @Column(name = "graph_event_id")
-    private String graphEventId;
-
     @CreatedDate
-    @Column(name = "created_at", updatable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
-
-    @LastModifiedDate
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
 }

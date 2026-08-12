@@ -1,78 +1,87 @@
 package com.yourcompany.roombooking.controller;
 
 import com.yourcompany.roombooking.dto.request.CreateBookingRequest;
+import com.yourcompany.roombooking.dto.response.AvailabilityResponse;
 import com.yourcompany.roombooking.dto.response.BookingResponse;
-import com.yourcompany.roombooking.dto.response.PagedResponse;
+import com.yourcompany.roombooking.dto.response.EmployeeResponse;
+import com.yourcompany.roombooking.dto.response.RoomResponse;
+import com.yourcompany.roombooking.dto.response.TodayBookingsResponse;
 import com.yourcompany.roombooking.service.BookingService;
-import com.yourcompany.roombooking.config.JwtTokenValidator;
 import com.yourcompany.roombooking.util.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
-import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/bookings")
-@Tag(name = "Booking Management")
+@RequestMapping("/api")
+@CrossOrigin(origins = "http://localhost:5173")
+@RequiredArgsConstructor
+@Tag(name = "Room Booking")
 public class BookingController {
 
     private final BookingService bookingService;
 
-    public BookingController(BookingService bookingService) {
-        this.bookingService = bookingService;
+    @GetMapping("/employees")
+    public ResponseEntity<ApiResponse<List<EmployeeResponse>>> getAllEmployees() {
+        List<EmployeeResponse> employees = bookingService.getAllEmployees();
+        return ResponseEntity.ok(
+                ApiResponse.success("Employees fetched successfully", employees));
     }
 
-    @PreAuthorize("hasAnyRole('EMPLOYEE','ADMIN')")
-    @PostMapping
+    @GetMapping("/rooms")
+    public ResponseEntity<ApiResponse<List<RoomResponse>>> getAllRooms() {
+        List<RoomResponse> rooms = bookingService.getAllRooms();
+        return ResponseEntity.ok(
+                ApiResponse.success("Rooms fetched successfully", rooms));
+    }
+
+    @GetMapping("/bookings/availability")
+    public ResponseEntity<ApiResponse<AvailabilityResponse>> checkAvailability(
+            @RequestParam Long roomId,
+            @RequestParam LocalDate date,
+            @RequestParam LocalTime startTime,
+            @RequestParam LocalTime endTime) {
+        AvailabilityResponse response = bookingService.checkAvailability(roomId, date, startTime, endTime);
+        return ResponseEntity.ok(
+                ApiResponse.success("Availability checked", response));
+    }
+
+    @PostMapping("/bookings")
     public ResponseEntity<ApiResponse<BookingResponse>> createBooking(
-            @Valid @RequestBody CreateBookingRequest request,
-            @AuthenticationPrincipal Jwt jwt) {
-        String bookedBy = JwtTokenValidator.extractEmail(jwt);
-        BookingResponse response = bookingService.createBooking(request, bookedBy);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Room booked successfully", response));
+            @Valid @RequestBody CreateBookingRequest request) {
+        BookingResponse response = bookingService.createBooking(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                ApiResponse.success("Room booked successfully", response));
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
-    @GetMapping
-    public ResponseEntity<ApiResponse<PagedResponse<BookingResponse>>> getAllBookings(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        PagedResponse<BookingResponse> bookings = bookingService.getAllBookings(page, size);
-        return ResponseEntity.ok(ApiResponse.success("Bookings fetched successfully", bookings));
+    @GetMapping("/bookings/today")
+    public ResponseEntity<ApiResponse<List<TodayBookingsResponse>>> getTodayBookings() {
+        List<TodayBookingsResponse> response = bookingService.getTodayBookings();
+        return ResponseEntity.ok(
+                ApiResponse.success("Today's bookings fetched", response));
     }
 
-    @PreAuthorize("hasAnyRole('EMPLOYEE','ADMIN')")
-    @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<BookingResponse>> getBookingById(@PathVariable UUID id) {
-        BookingResponse booking = bookingService.getBookingById(id);
-        return ResponseEntity.ok(ApiResponse.success("Booking fetched successfully", booking));
+    @GetMapping("/bookings/recent")
+    public ResponseEntity<ApiResponse<List<BookingResponse>>> getRecentBookings(
+            @RequestParam(defaultValue = "5") int days) {
+        List<BookingResponse> response = bookingService.getRecentBookings(days);
+        return ResponseEntity.ok(
+                ApiResponse.success("Recent bookings fetched", response));
     }
 
-    @PreAuthorize("hasAnyRole('EMPLOYEE','ADMIN')")
-    @GetMapping("/my")
-    public ResponseEntity<ApiResponse<PagedResponse<BookingResponse>>> getMyBookings(
-            @RequestParam String bookedBy,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        PagedResponse<BookingResponse> bookings = bookingService.getMyBookings(bookedBy, page, size);
-        return ResponseEntity.ok(ApiResponse.success("My bookings fetched successfully", bookings));
-    }
-
-    @PreAuthorize("hasAnyRole('EMPLOYEE','ADMIN')")
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/bookings/{id}")
     public ResponseEntity<ApiResponse<Void>> cancelBooking(
-            @PathVariable UUID id,
-            @AuthenticationPrincipal Jwt jwt) {
-        String requestedBy = JwtTokenValidator.extractEmail(jwt);
-        bookingService.cancelBooking(id, requestedBy);
-        return ResponseEntity.ok(ApiResponse.success("Booking cancelled successfully", null));
+            @PathVariable Long id,
+            @RequestParam Long employeeId) {
+        bookingService.cancelBooking(id, employeeId);
+        return ResponseEntity.ok(
+                ApiResponse.success("Booking cancelled successfully", null));
     }
 }

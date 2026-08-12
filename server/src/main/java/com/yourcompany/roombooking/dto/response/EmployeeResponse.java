@@ -1,6 +1,5 @@
 package com.yourcompany.roombooking.dto.response;
 
-import com.yourcompany.roombooking.enums.RoomStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -10,10 +9,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class RoomResponse {
+public class EmployeeResponse {
     private Long id;
-    private String roomName;
-    private Integer capacity;
-    private String location;
-    private RoomStatus status;
+    private String name;
+    private String email;
+    private String department;
 }

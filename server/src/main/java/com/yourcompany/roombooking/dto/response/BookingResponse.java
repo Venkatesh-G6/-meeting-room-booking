@@ -7,23 +7,21 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class BookingResponse {
-
-    private UUID id;
-    private UUID roomId;
+    private Long id;
+    private Long roomId;
     private String roomName;
-    private String bookedBy;
+    private Long employeeId;
+    private String employeeName;
+    private String employeeEmail;
     private String title;
-    private Integer attendeeCount;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
     private BookingStatus status;
-    private String graphEventId;
     private LocalDateTime createdAt;
 }
