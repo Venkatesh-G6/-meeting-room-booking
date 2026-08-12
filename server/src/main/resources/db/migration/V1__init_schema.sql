@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS rooms (
                DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS bookings (
+CREATE TABLE IF NOT EXISTS facility_schedules (
   id           BIGINT AUTO_INCREMENT 
                PRIMARY KEY,
   room_id      BIGINT NOT NULL,
@@ -33,19 +33,19 @@ CREATE TABLE IF NOT EXISTS bookings (
                NOT NULL DEFAULT 'CONFIRMED',
   created_at   DATETIME NOT NULL 
                DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT fk_booking_room 
+  CONSTRAINT fk_facility_schedule_room 
     FOREIGN KEY (room_id) 
     REFERENCES rooms(id),
-  CONSTRAINT fk_booking_employee 
+  CONSTRAINT fk_facility_schedule_employee 
     FOREIGN KEY (employee_id) 
     REFERENCES employees(id)
 );
 
-CREATE INDEX idx_bookings_room_date
-  ON bookings(room_id, start_time);
+CREATE INDEX idx_facility_schedules_room_date
+  ON facility_schedules(room_id, start_time);
 
-CREATE INDEX idx_bookings_employee
-  ON bookings(employee_id);
+CREATE INDEX idx_facility_schedules_employee
+  ON facility_schedules(employee_id);
 
-CREATE INDEX idx_bookings_start_time
-  ON bookings(start_time);
+CREATE INDEX idx_facility_schedules_start_time
+  ON facility_schedules(start_time);

@@ -10,7 +10,7 @@ app:
 logging:
   level:
     root: WARN
-    com.yourcompany.roombooking: INFO
+    com.yourcompany.facilityscheduler: INFO
     org.hibernate.SQL: WARN
 
 management:

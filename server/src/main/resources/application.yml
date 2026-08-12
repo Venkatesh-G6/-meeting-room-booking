@@ -60,4 +60,4 @@ management:
 
 logging:
   level:
-    com.yourcompany.roombooking: DEBUG
+    com.yourcompany.facilityscheduler: DEBUG

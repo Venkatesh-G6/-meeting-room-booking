@@ -34,17 +34,17 @@ export interface AvailabilityResponse {
   date: string
   requestedStart: string
   requestedEnd: string
-  conflictingBooking: Booking | null
+  conflictingFacilitySchedule: Booking | null
   suggestedStartTime: string | null
   suggestedEndTime: string | null
   message: string
 }
 
-export interface TodayBookingsResponse {
+export interface TodayFacilitySchedulesResponse {
   roomId: number
   roomName: string
   location: string
-  bookings: Booking[]
+  facilitySchedules: Booking[]
   fullyAvailable: boolean
 }
 

@@ -13,10 +13,10 @@
     </parent>
 
     <groupId>com.yourcompany</groupId>
-    <artifactId>roombooking</artifactId>
+    <artifactId>facilityscheduler</artifactId>
     <version>1.0.0-SNAPSHOT</version>
-    <name>roombooking</name>
-    <description>Meeting Room Booking Automation System</description>
+    <name>facilityscheduler</name>
+    <description>Facility Scheduler Automation System</description>
 
     <properties>
         <java.version>17</java.version>
