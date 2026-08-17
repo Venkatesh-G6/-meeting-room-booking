@@ -23,7 +23,7 @@ export const checkAvailability = (
 ) =>
   api.get<any, 
     ApiResponse<AvailabilityResponse>>(
-    '/facility-schedules/availability',
+    '/meets/availability',
     { params: { roomId, date, 
         startTime, endTime } })
 
@@ -36,21 +36,21 @@ export const createSchedule = (data: {
   endTime: string
 }) =>
   api.post<any, ApiResponse<Booking>>(
-    '/facility-schedules', data)
+    '/meets', data)
 
 export const getTodaySchedules = () =>
   api.get<any, 
     ApiResponse<TodayFacilitySchedulesResponse[]>>(
-    '/facility-schedules/today')
+    '/meets/today')
 
 export const getRecentSchedules = (
   days = 5) =>
   api.get<any, ApiResponse<Booking[]>>(
-    '/facility-schedules/recent', 
+    '/meets/recent', 
     { params: { days } })
 
 export const cancelSchedule = (
   id: number, employeeId: number) =>
   api.delete<any, ApiResponse<void>>(
-    `/facility-schedules/${id}`,
+    `/meets/${id}`,
     { params: { employeeId } })

@@ -24,7 +24,7 @@ public class SwaggerConfig {
     }
 
     @Bean
-    public OpenAPI facilitySchedulerOpenAPI() {
+    public OpenAPI meetSpaceOpenAPI() {
         String tenantId = environment.getProperty("AZURE_TENANT_ID", "");
         String appIdUri = environment.getProperty("AZURE_APP_ID_URI", "");
 
@@ -44,12 +44,12 @@ public class SwaggerConfig {
                                 .authorizationUrl(authorizationUrl)
                                 .tokenUrl(tokenUrl)
                                 .scopes(new Scopes()
-                                        .addString(appIdUri + "/.default", "Access the Facility Scheduler API"))));
+                                        .addString(appIdUri + "/.default", "Access the MeetSpace API"))));
 
         return new OpenAPI()
                 .info(new Info()
-                        .title("Facility Scheduler")
-                        .description("REST API for managing facility schedules")
+                        .title("MeetSpace")
+                        .description("REST API for managing meets")
                         .version("1.0"))
                 .addSecurityItem(new SecurityRequirement().addList(SECURITY_SCHEME_NAME))
                 .components(new Components()

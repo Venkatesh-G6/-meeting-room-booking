@@ -56,7 +56,7 @@ function relativeDayLabel(date: dayjs.Dayjs): string {
   return `${diff} days ago`
 }
 
-export default function FacilitySchedulerPage() {
+export default function MeetSpacePage() {
   const [employees, setEmployees] = useState<Employee[]>([])
   const [rooms, setRooms] = useState<Room[]>([])
   const [selectedRoomId, setSelectedRoomId] = useState<number | null>(null)
@@ -66,7 +66,7 @@ export default function FacilitySchedulerPage() {
   const [now, setNow] = useState(dayjs())
 
   useEffect(() => {
-    document.title = 'Facility Scheduler — Technoidentity'
+    document.title = 'MeetSpace — Technoidentity'
   }, [])
 
   useEffect(() => {
@@ -108,7 +108,7 @@ export default function FacilitySchedulerPage() {
         <div className="flex items-center gap-3">
           <Building2 className="w-8 h-8" />
           <div>
-            <h1 className="text-xl font-bold leading-tight">Facility Scheduler</h1>
+            <h1 className="text-xl font-bold leading-tight">MeetSpace</h1>
             <p className="text-xs text-blue-200">Technoidentity</p>
           </div>
         </div>
@@ -128,17 +128,17 @@ export default function FacilitySchedulerPage() {
           </div>
         ) : (
           <div className="space-y-6">
-            {/* Card 1 — Schedule a Facility */}
+            {/* Card 1 — Schedule a Meet */}
             <div className="bg-white rounded-lg shadow-md border border-gray-100 p-6">
               <div className="flex items-center gap-2 mb-5">
                 <CalendarPlus className="w-6 h-6 text-blue-600" />
-                <h2 className="text-lg font-bold text-gray-800">Schedule a Facility</h2>
+                <h2 className="text-lg font-bold text-gray-800">Schedule a Meet</h2>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Select Facility
+                    Select Meet
                   </label>
                   <select
                     value={selectedRoomId ?? ''}
@@ -151,10 +151,10 @@ export default function FacilitySchedulerPage() {
                     {isLoading ? (
                       <option>Loading...</option>
                     ) : rooms.length === 0 ? (
-                      <option>No facilities available</option>
+                      <option>No meets available</option>
                     ) : (
                       <>
-                        <option value="">Choose a facility...</option>
+                        <option value="">Choose a meet...</option>
                         {rooms.map((room) => (
                           <option key={room.id} value={room.id}>
                             {room.roomName}
@@ -204,7 +204,7 @@ export default function FacilitySchedulerPage() {
                   className={PRIMARY_BTN}
                 >
                   <CalendarPlus className="w-4 h-4" />
-                  Schedule Selected Facility
+                  Schedule Selected Meet
                 </button>
                 <button
                   onClick={() => setView('today')}
@@ -290,7 +290,7 @@ function ScheduleSection({
         startTime,
         endTime,
       })
-      toast.success('Facility scheduled successfully!')
+      toast.success('Meet scheduled successfully!')
       setTitle('')
       setDate('')
       setStartTime('')

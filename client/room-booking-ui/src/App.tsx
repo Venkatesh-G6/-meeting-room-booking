@@ -1,10 +1,10 @@
 import { Toaster } from "react-hot-toast";
-import FacilitySchedulerPage from "./pages/FacilitySchedulerPage";
+import MeetSpacePage from "./pages/MeetSpacePage";
 
 function App() {
   return (
     <>
-      <FacilitySchedulerPage />
+      <MeetSpacePage />
       <Toaster position="top-right" />
     </>
   );
