@@ -12,7 +12,7 @@ WORKDIR /app
 RUN addgroup -S spring && \
   adduser -S spring -G spring
 USER spring:spring
-COPY --from=build /app/target/roombooking-*.jar app.jar
+COPY --from=build /app/target/facilityscheduler-*.jar app.jar
 EXPOSE 8080
 ENTRYPOINT ["java", \
   "-Djava.security.egd=file:/dev/./urandom",\
