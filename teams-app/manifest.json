@@ -1,0 +1,36 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/teams/v1.16/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.16",
+  "version": "1.0.0",
+  "id": "00000000-0000-0000-0000-000000000000",
+  "packageName": "com.yourcompany.meetspace",
+  "developer": {
+    "name": "Your Company",
+    "websiteUrl": "https://yourcompany.com",
+    "privacyUrl": "https://yourcompany.com/privacy",
+    "termsOfUseUrl": "https://yourcompany.com/terms"
+  },
+  "name": {
+    "short": "MeetSpace",
+    "full": "MeetSpace — Facility Meet Scheduler"
+  },
+  "description": {
+    "short": "Schedule meeting rooms",
+    "full": "Schedule and manage meeting rooms directly from Teams"
+  },
+  "icons": {
+    "outline": "outline.png",
+    "color": "color.png"
+  },
+  "accentColor": "#0078D4",
+  "staticTabs": [
+    {
+      "entityId": "meetspace",
+      "name": "MeetSpace",
+      "contentUrl": "https://REPLACE_WITH_YOUR_HOSTED_DOMAIN/",
+      "scopes": ["personal"]
+    }
+  ],
+  "validDomains": ["REPLACE_WITH_YOUR_HOSTED_DOMAIN"],
+  "permissions": ["identity"]
+}
