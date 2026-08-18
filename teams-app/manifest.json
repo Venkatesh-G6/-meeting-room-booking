@@ -2,7 +2,7 @@
   "$schema": "https://developer.microsoft.com/json-schemas/teams/v1.16/MicrosoftTeams.schema.json",
   "manifestVersion": "1.16",
   "version": "1.0.0",
-  "id": "00000000-0000-0000-0000-000000000000",
+  "id": "84a0fafc-9e8b-4ea3-824b-b7d5aed9e9f4",
   "packageName": "com.yourcompany.meetspace",
   "developer": {
     "name": "Your Company",
@@ -27,10 +27,10 @@
     {
       "entityId": "meetspace",
       "name": "MeetSpace",
-      "contentUrl": "https://REPLACE_WITH_YOUR_HOSTED_DOMAIN/",
+      "contentUrl": "https://qcgh77n1-5173.asse.devtunnels.ms/",
       "scopes": ["personal"]
     }
   ],
-  "validDomains": ["REPLACE_WITH_YOUR_HOSTED_DOMAIN"],
+  "validDomains": ["qcgh77n1-5173.asse.devtunnels.ms"],
   "permissions": ["identity"]
 }
